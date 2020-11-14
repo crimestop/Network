@@ -25,6 +25,14 @@ namespace net{
 	template <typename V>
 	using init_bond_type = std::function<V(const std::string &,const std::string &)>;
 
+   /**
+    * \brief 网络是一些点和点间关联的并
+    *
+    * 每个格点拥有一个名字，整个网络也有自己的名字，网络除了可以通过格点名称寻找格点外还可以通过整数数组来寻找格点
+    * \see site
+    * \tparam T 每个格点中附着的信息类型
+    * \tparam V 每个边上附着的信息类型
+    */
 	template <typename T,typename V>
 	class network{
 	template <typename T1,typename V1>

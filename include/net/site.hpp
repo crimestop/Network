@@ -8,6 +8,12 @@ namespace net{
 	template <typename T,typename V>
 	class site;
 
+   /**
+    * \brief 描述着连接格点的边上信息，实际上这是一个半边而不是是一个完整的边
+    *
+    * 每个边拥有一个边上信息val，已经和自己相连的另一个格点的指针
+    * \see site
+    */
 	template <typename T,typename V>
 	class bond{
 	template <typename T1,typename V1>
@@ -26,6 +32,14 @@ namespace net{
 		bond(const bond<T,V>&)=default;
 	};
 
+   /**
+    * \brief 格点存储了网络中点内的信息
+    *
+    * 每个格点中有一个中心元素val, 和边的信息
+    * 每个边拥有一个名字和一个bond对象
+    * \see network
+    * \see bond
+    */
 	template <typename T,typename V>
 	class site{
 	template <typename T1,typename V1>

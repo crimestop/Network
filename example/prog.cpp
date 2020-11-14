@@ -9,7 +9,7 @@
 #include <net/net.hpp>
 #include <net/tensor_tool.hpp>
 #define str std::to_string
-#define vec std::vector<int>
+#define vec std::vector
 
 int main(){
 	using namespace std::placeholders;
@@ -32,7 +32,6 @@ int main(){
 
 	lat.draw(true);
 	int n=0;
-	int tot;
 
 	benchmark.start("square");
 
@@ -73,7 +72,7 @@ int main(){
 	lat_file<<lat2;
 
 	benchmark.start("contract");
-	tot = lat2.contract(net::tensor::no_absorb<double>,net::tensor::contract<double>);
+	double tot = lat2.contract(net::tensor::no_absorb<double>,net::tensor::contract<double>);
 	benchmark.stop("contract");
 
 	benchmark.start("absorb");

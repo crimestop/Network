@@ -1,6 +1,7 @@
 .DS_Store
 TAT
 build
+docs
 /example/*
 !/example/*.cpp
 !/example/*.hpp
