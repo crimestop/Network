@@ -48,10 +48,6 @@ namespace net{
 
 		template <typename T>
 		Tensor<T> contract(Tensor<T>& ten1,Tensor<T>& ten2,const std::set<std::pair<std::string,std::string>> & inds){
-			std::set<std::tuple<TAT::Name, TAT::Name>> real_inds;
-			for (const auto& i : inds) {
-				real_inds.insert({i.first, i.second});
-			}
 			return Tensor<T>::contract(ten1,ten2,{inds.begin(), inds.end()});
 		}
 	}
