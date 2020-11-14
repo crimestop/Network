@@ -56,6 +56,10 @@ int main(){
 		}
 	}
 
+	TAT::Tensor<double> a,b;
+	//std::ofstream("ten.dat", std::ios::out)<<a;
+	std::ifstream("ten.dat", std::ios::in)>>b;
+
 	// auto test=std::bind(net::tensor::init_site_rand, _1,8,-1l,1l,std::ref(random_engine));
 
 	// std::vector<std::string> a={"A.1","A.2"};
@@ -68,8 +72,10 @@ int main(){
 	benchmark.stop("square");
 
 
-	std::ofstream lat_file("testout.dat", std::ios::out);
-	lat_file<<lat2;
+	std::ofstream("testout.dat", std::ios::out|std::ios::binary)<lat2;
+	net::network<net::tensor::Tensor<double>,net::tensor::Tensor<double>> lat3;
+	std::ifstream("testout.dat", std::ios::in|std::ios::binary)>lat3;
+
 
 	benchmark.start("contract");
 	double tot = lat2.contract(net::tensor::no_absorb<double>,net::tensor::contract<double>);
@@ -95,5 +101,6 @@ int main(){
 	benchmark.print();
 
 	lat2.draw(true);
+	lat3.draw(true);
 	return 0;
 }

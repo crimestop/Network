@@ -20,11 +20,15 @@ namespace net{
 	friend std::ostream & operator<<(std::ostream &,const bond<T1,V1> &);
 	template <typename T1,typename V1>
 	friend std::istream & operator>>(std::istream &, bond<T1,V1> &);
+	template <typename T1,typename V1>
+	friend std::ostream & operator<(std::ostream &,const bond<T1,V1> &);
+	template <typename T1,typename V1>
+	friend std::istream & operator>(std::istream &, bond<T1,V1> &);
 	public:
 		std::string name;
 		std::string ind;
 		site<T,V> * neighbor;
-		V val;
+		V val=V();
 
 		bond()=default;
 		bond(const std::string & s1,const std::string & s2,site<T,V> * s): name(s1),ind(s2),neighbor(s){};
@@ -46,6 +50,10 @@ namespace net{
 	friend std::ostream & operator<<(std::ostream &,const site<T1,V1> &);
 	template <typename T1,typename V1>
 	friend std::istream & operator>>(std::istream &, site<T1,V1> &);
+	template <typename T1,typename V1>
+	friend std::ostream & operator<(std::ostream &,const site<T1,V1> &);
+	template <typename T1,typename V1>
+	friend std::istream & operator>(std::istream &, site<T1,V1> &);
 	public:
 		//constructor
 		site()=default;
@@ -61,9 +69,11 @@ namespace net{
 
 		void clean();
 
-		T val;
+		T val=T();
 		std::map<std::string,bond<T,V>> bonds;
 		std::vector<int> position;
 	};
 }
+
+
 #endif

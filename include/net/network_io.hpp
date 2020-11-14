@@ -11,7 +11,7 @@ namespace net{
 	template <typename T>
 	std::ostream & operator<<(std::ostream & os,const std::set<T> & m);
 	template <typename T>
-	std::istream & operator>>(std::istream & is,const std::set<T> & m);
+	std::istream & operator>>(std::istream & is,std::set<T> & m);
 	template <typename T,typename V>
 	std::ostream & operator<<(std::ostream & os,const std::map<T,V> & m);
 	template <typename T,typename V>
@@ -19,7 +19,7 @@ namespace net{
 	template <typename T>
 	std::ostream & operator<<(std::ostream & os,const std::vector<T> & m);
 	template <typename T>
-	std::istream & operator>>(std::istream & is,const std::vector<T> & m);
+	std::istream & operator>>(std::istream & is,std::vector<T> & m);
 
 
 	template <typename T,typename V>
@@ -43,6 +43,7 @@ namespace net{
 	template <typename T,typename V>
 	std::istream & operator>>(std::istream & is,site<T,V> & s){
 		is>>s.bonds>>s.position>>s.val;
+		// std::cout<<"---2-----"<<std::endl<<s.val<<std::endl<<"---2-----"<<std::endl;
 		return is;
 	}
 
@@ -56,8 +57,8 @@ namespace net{
 	std::istream & operator>>(std::istream & is,network<T,V> &n){
 		is>>n.name>>n.name_at>>n.sites;
 		for(auto & s:n.sites){
-			for (auto & b: s.bonds){
-				b.neighbor=&(n.sites[b.name]);
+			for (auto & b: s.second.bonds){
+				b.second.neighbor=&(n.sites[b.second.name]);
 			}
 		}
 		return is;
@@ -67,7 +68,7 @@ namespace net{
 	std::ostream & operator<<(std::ostream & os,const std::map<T,V> & m){
 		os<<m.size();
 		for(auto & i : m){
-			os<<i.first<<' '<<i.second<<' ';
+			os<<' '<<i.first<<' '<<i.second;
 		}
 		return os;
 	}
@@ -79,10 +80,14 @@ namespace net{
 		T a;
 		V b;
 		m.clear();
+		// std::cout<<"..."<<len<<"..."<<std::endl;
 		for (int i=0;i<len;++i){
 			is>>a>>b;
+			// std::cout<<"here"<<std::endl;
+			// std::cout<<'-'<<a<<'-'<<b<<'-'<<std::endl;
 			m[a]=b;
 		}
+		// std::cout<<"finish"<<std::endl;
 		return is;
 	}
 
@@ -90,20 +95,20 @@ namespace net{
 	std::ostream & operator<<(std::ostream & os,const std::vector<T> & m){
 		os<<m.size();
 		for(auto & i : m){
-			os<<i<<' ';
+			os<<' '<<i;
 		}
 		return os;
 	}
 
 	template <typename T>
-	std::istream & operator>>(std::istream & is,const std::vector<T> & m){
+	std::istream & operator>>(std::istream & is,std::vector<T> & m){
 		int len;
 		is>>len;
 		T a;
 		m.clear();
 		for (int i=0;i<len;++i){
 			is>>a;
-			m.pushback(a);
+			m.push_back(a);
 		}
 		return is;
 	}
@@ -112,13 +117,13 @@ namespace net{
 	std::ostream & operator<<(std::ostream & os,const std::set<T> & m){
 		os<<m.size();
 		for(auto & i : m){
-			os<<i<<' ';
+			os<<' '<<i;
 		}
 		return os;
 	}
 
 	template <typename T>
-	std::istream & operator>>(std::istream & is,const std::set<T> & m){
+	std::istream & operator>>(std::istream & is,std::set<T> & m){
 		int len;
 		is>>len;
 		T a;

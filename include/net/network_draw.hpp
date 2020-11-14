@@ -99,6 +99,7 @@ namespace net{
 			std::cout<<"\a";
 		}
 		std::cout<<std::endl;
+
 #else
       std::ofstream("/tmp/net_tmp.png") << fig_content;
       std::system("gwenview /tmp/net_tmp.png || eog /tmp/net_tmp.png");
