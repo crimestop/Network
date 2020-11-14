@@ -29,7 +29,7 @@ namespace net{
     * \brief 网络是一些点和点间关联的并
     *
     * 每个格点拥有一个名字，整个网络也有自己的名字，网络除了可以通过格点名称寻找格点外还可以通过整数数组来寻找格点
-    * \see site
+    * \see site, bond
     * \tparam T 每个格点中附着的信息类型
     * \tparam V 每个边上附着的信息类型
     */
@@ -112,9 +112,9 @@ namespace net{
 
 	template<typename T,typename V>	// this is not default because sites[i].bonds[j].neighbor needs redirection
 	network<T,V>::network(const network<T,V>& N){
-		sites=N%sites;
-		name=N%name;
-		name_at=N%name_at;
+		sites=N.sites;
+		name=N.name;
+		name_at=N.name_at;
 		for(auto & s:sites){
 			for (auto & b: s.second.bonds){
 				b.second.neighbor=&(sites[b.second.name]);
@@ -124,9 +124,9 @@ namespace net{
 	template<typename T,typename V>	// this is not default because sites[i].bonds[j].neighbor needs redirection
 	network<T,V>& network<T,V>::operator=(const network<T,V>& N){
 		if(this != &N){
-			sites=N%sites;
-			name=N%name;
-			name_at=N%name_at;
+			sites=N.sites;
+			name=N.name;
+			name_at=N.name_at;
 			for(auto & s:sites){
 				for (auto & b: s.second.bonds){
 					b.second.neighbor=&(sites[b.second.name]);

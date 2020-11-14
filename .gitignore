@@ -2,6 +2,7 @@
 TAT
 build
 docs
+.idea
 /example/*
 !/example/*.cpp
 !/example/*.hpp
