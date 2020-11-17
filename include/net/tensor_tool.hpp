@@ -7,18 +7,16 @@
 namespace net{
 	namespace tensor{
 		template <typename T>
-		using Tensor=TAT::Tensor<T,TAT::NoSymmetry>;
+		using Tensor=TAT::Tensor<T,TAT::NoSymmetry,std::string>;
 
 		Tensor<double> init_site_rand(const std::vector<std::string> & str_inds, const unsigned int D,const double min,const double max,std::default_random_engine & R){
 
 			auto distribution = std::uniform_real_distribution<double>(min,max);
-			std::vector<TAT::Name> inds;
 			std::vector<unsigned int> dims;
 			for (auto& ind:str_inds){
-				inds.push_back(ind);
 				dims.push_back(D);
 			}
-			Tensor<double> result(inds,{dims.begin(), dims.end()});
+			Tensor<double> result(str_inds,{dims.begin(), dims.end()});
 			return result.set([&distribution, &R]() { return distribution(R); });
 		}
 
