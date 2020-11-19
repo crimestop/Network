@@ -19,6 +19,43 @@
 #include <graphviz/cgraph.h>
 #endif
 
+#ifdef NET_SHOW_FIG
+#ifdef __CLING__
+#include <unistd.h>
+#include <map>
+#include <string>
+extern int pipeToJupyterFD;
+// https://github.com/root-project/cling/blob/0c880f8472f5a313095203ccd35561b0097b13ec/tools/Jupyter/Kernel.cpp#L54
+bool show_mime(const std::map<std::string, std::string>& contentDict) {
+  unsigned char sizeLong = sizeof(long);
+  if (write(pipeToJupyterFD, &sizeLong, 1) != 1)
+    return false;
+  long dictSize = contentDict.size();
+  if (write(pipeToJupyterFD, &dictSize, sizeof(long)) != sizeof(long))
+    return false;
+
+  for (auto iContent: contentDict) {
+    const std::string& mimeType = iContent.first;
+    long mimeTypeSize = (long)mimeType.size();
+    if (write(pipeToJupyterFD, &mimeTypeSize, sizeof(long)) != sizeof(long))
+      return false;
+    if (write(pipeToJupyterFD, mimeType.c_str(), mimeType.size() + 1)
+        != (long)(mimeType.size() + 1))
+      return false;
+    const std::string& mimeData = iContent.second;
+    const long string_size = mimeData.size();
+    if (write(pipeToJupyterFD, &string_size, sizeof(long))
+        != sizeof(long))
+      return false;
+    if (write(pipeToJupyterFD, mimeData.data(), string_size)
+        != string_size)
+      return false;
+  }
+  return true;
+}
+#endif
+#endif
+
 namespace net{
 
 	#ifdef NET_GRAPH_VIZ
@@ -101,8 +138,11 @@ namespace net{
 		std::cout<<std::endl;
 
 #else
-      std::ofstream("/tmp/net_tmp.png") << fig_content;
-      std::system("gwenview /tmp/net_tmp.png || eog /tmp/net_tmp.png");
+#ifdef __CLING__
+      show_mime({{"text/html","<img style='background-color:black;' src='data:image/png;base64, "+base64_encode(fig_content)+"'></img>"}});
+#else
+      std::cerr << "Cannot Show Image\n";
+#endif
 #endif
 	}
 	#endif
@@ -129,7 +169,7 @@ namespace net{
 		}
 		
 
-		for(auto s_it:sites){
+		for(auto& s_it:sites){
 			auto & name1=s_it.first;
 			if (contains.count(name1)==1){
 				dot_content<<"  "+name1+" [ color=Red, label = \""+name1+"\", fontcolor=White, fontname=\"Monaco\"]"<<std::endl;
