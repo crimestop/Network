@@ -104,7 +104,9 @@ namespace net{
 		bool exist(const std::string &);
 
 		T& operator[](const std::string &);
+		T& operator[](const std::vector<int> &);
 		void set_val(const std::string &,const T& );
+		void set_val(const std::vector<int> &,const T& );
 		void init_sites(init_site_type<T> );
 		void init_bonds(init_bond_type<V>);
 		T contract(absorb_type<T,V>, contract_type<T>);
@@ -179,8 +181,17 @@ namespace net{
 		return sites[name].val;
 	}
 	template<typename T,typename V>
+	T& network<T,V>::operator[](const std::vector<int> & pos){
+		return sites[name_at[pos]].val;
+	}
+
+	template<typename T,typename V>
 	void network<T,V>::set_val(const std::string & name,const T& value){
 		sites[name].val=value;
+	}
+	template<typename T,typename V>
+	void network<T,V>::set_val(const std::vector<int> & pos,const T& value){
+		sites[name_at[pos]].val=value;
 	}
 
 	template<typename T,typename V>

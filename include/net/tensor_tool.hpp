@@ -3,6 +3,7 @@
 
 #include <TAT/TAT.hpp>
 #include "network.hpp"
+#include <random>
 
 namespace net{
 	namespace tensor{
@@ -18,6 +19,16 @@ namespace net{
 			}
 			Tensor<double> result(str_inds,{dims.begin(), dims.end()});
 			return result.set([&distribution, &R]() { return distribution(R); });
+		}
+
+		template<typename T>
+		int get_dim(Tensor<T> ten, int s){
+			return ten->core.edges[s].map[TAT::NoSymmetry()];
+		}
+
+		template<typename T>
+		int get_dim(Tensor<T> ten, std::string s){
+			return ten->core.edges[ten.name_to_index[s]].map[TAT::NoSymmetry()];
 		}
 
 		template<typename T>
