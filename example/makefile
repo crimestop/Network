@@ -16,7 +16,7 @@ TATPATH := /Users/chaowang/Desktop/work/program/TAT
 LINKOPT := -lblas -llapack -L $(GRAPHVIZPATH)/lib -lgvc -lcgraph 
 MAKEOPT := -g -std=c++17  -O3 -I $(TATPATH)/include -DTAT_USE_VALID_DEFAULT_TENSOR -DTAT_USE_SIMPLE_NAME -DTAT_USE_SINGULAR_MATRIX -DTAT_USE_SIMPLE_NOSYMMETRY -DTAT_USE_COPY_WITHOUT_WARNING -I $(GRAPHVIZPATH)/include -I$(NETPATH)/include -DNET_GRAPH_VIZ -DNET_SHOW_FIG_USE_ITERM -I$(JSONPATH)/include
 
-all: test.out
+all: run.out test.out
 
 test.out:$(TEST2)
 	$(CC) $(FFLAGS) -o $@ $^ $(LINKOPT) 

@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 namespace net{
 // use default plot color in matplotlib
+// we use json lib https://github.com/nlohmann/json to parse json
 inline std::string theme_dark1=R"({
 	"global_bgcolor" : "transparent" ,
 	"global_fontcolor" : "white" ,
