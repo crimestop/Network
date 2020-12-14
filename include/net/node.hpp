@@ -12,11 +12,6 @@ namespace net{
 	class node;
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	class network;
-	template <typename NodeVal,typename EdgeVal,typename EdgeKey>
-	using absorb_type = std::function<NodeVal(const NodeVal&,const EdgeVal&,const EdgeKey &)>;
-	template <typename NodeVal,typename EdgeKey,typename Comp>
-	using contract_type = std::function<NodeVal(const NodeVal&,const NodeVal&,const std::set<std::pair<EdgeKey,EdgeKey>,Comp> &)>;
-
 	template<typename T>
 	std::string to_string(const T& m);
 
@@ -77,14 +72,6 @@ namespace net{
 	template<typename NodeVal1,typename EdgeVal1,typename NodeKey1, typename EdgeKey1, typename Trait1>	
 	friend std::istream & input_node_bin(std::istream &, node<NodeVal1,EdgeVal1,NodeKey1,EdgeKey1,Trait1> &);
 
-	template<typename NodeVal1,typename EdgeVal1,typename NodeVal2,typename EdgeVal2, typename NodeKey1, typename EdgeKey1, typename Trait1>
-	friend node<NodeVal2,EdgeVal2,NodeKey1,EdgeKey1,Trait1> fmap(const node<NodeVal1,EdgeVal1,NodeKey1,EdgeKey1,Trait1> & n,
-		std::function<NodeVal2(const NodeVal1 &)> f1,std::function<EdgeVal2(const EdgeVal1 &)> f2);
-
-	template<typename NodeVal1,typename EdgeVal1,typename NodeVal2,typename EdgeVal2, typename NodeKey1, typename EdgeKey1, typename Trait1>
-	friend node<NodeVal2,EdgeVal2,NodeKey1,EdgeKey1,Trait1> fmap(const node<NodeVal1,EdgeVal1,NodeKey1,EdgeKey1,Trait1> & n,
-		std::function<NodeVal2(const NodeVal1 &)> f1,std::function<EdgeVal2(const EdgeVal1 &)> f2,std::function<NodeKey1(const NodeKey1 &)> f3,
-		std::function<EdgeKey1(const EdgeKey1 &)> f4);
 
 	public:
 		//constructor
@@ -99,6 +86,13 @@ namespace net{
 		//move assignment
 		node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>& operator=(node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>&&)=default;
 
+		using EdgeType =edge<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>;
+		using NodeKeyType =NodeKey;
+		using NodeValType =NodeVal;
+		using EdgeKeyType =EdgeKey;
+		using EdgeValType =EdgeVal;
+		using TraitType =Trait;
+
 		void clean();
 
 		template <typename Condition>
@@ -107,11 +101,10 @@ namespace net{
 
 		void reset_nbkey_of_nb(const NodeKey &);
 
-		void absorb_nb(const NodeKey &,const NodeVal &, absorb_type<NodeVal,EdgeVal,EdgeKey>,
-			contract_type<NodeVal,EdgeKey,typename Trait::edge2key_less>);
-		template <typename Condition>
-		void harmless_absorb_nb(NodeVal &,absorb_type<NodeVal,EdgeVal,EdgeKey>, std::set<std::pair<EdgeKey,EdgeKey>,
-			typename Trait::edge2key_less> &,Condition&&);
+		template<typename absorb_type,typename contract_type>
+		void absorb_nb(const NodeKey &,const NodeVal &);
+		template <typename absorb_type,typename Condition>
+		void harmless_absorb_nb(NodeVal &,std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> &,Condition&&);
 
 		void transfer_edge(const typename network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::IterNode &,bool );
 		template <typename Condition>
@@ -128,6 +121,16 @@ namespace net{
 		bool consistency(const std::map<NodeKey,node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>,typename Trait::nodekey_less> &,std::ostream &);
 
 		void fope(std::function<NodeVal(const NodeVal &)> f1, std::function<EdgeVal(const EdgeVal &)> f2);
+
+		template<typename NodeType2>
+		NodeType2 fmap(std::function<typename NodeType2::NodeValType(const NodeVal &)> f1,
+			std::function<typename NodeType2::EdgeValType(const EdgeVal &)> f2) const;
+
+		template<typename NodeType2>
+		NodeType2 fmap(std::function<typename NodeType2::NodeValType(const NodeVal &)> f1,
+			std::function<typename NodeType2::EdgeValType(const EdgeVal &)> f2,
+			std::function<typename NodeType2::NodeKeyType(const NodeKey &)> f3,
+			std::function<typename NodeType2::EdgeKeyType(const EdgeKey &)> f4) const;
 		/**
 		 * \brief 格点所附着的信息
 		 */
@@ -137,6 +140,7 @@ namespace net{
 		 * \see edge
 		 */
 		std::map<EdgeKey,edge<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>,typename Trait::edgekey_less> edges;
+
 	};
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
@@ -179,8 +183,8 @@ namespace net{
 	*  A(this) <----> B(nb) <----> C   =>  A <---- B <----> C 
 	*/
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
-	void node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::absorb_nb(const NodeKey & nbkey,const NodeVal & nbval,
-		absorb_type<NodeVal,EdgeVal,EdgeKey> absorb_fun, contract_type<NodeVal,EdgeKey,typename Trait::edge2key_less> contract_fun){
+	template <typename absorb_type,typename contract_type>
+	void node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::absorb_nb(const NodeKey & nbkey,const NodeVal & nbval){
 
 		std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> ind_pairs;
 
@@ -188,13 +192,13 @@ namespace net{
 		for(auto iter=edges.begin(); iter != edges.end(); ) {
 			if (iter->second.nbkey==nbkey) {
 				ind_pairs.insert(std::make_pair(iter->first,iter->second.nbind));
-				val=absorb_fun(val,iter->second.val,iter->first);
+				val=absorb_type::run(val,iter->second.val,iter->first);
 				iter=edges.erase(iter);
 			} else {
 				++iter;
 			}
 		}
-		val=contract_fun(val,nbval,ind_pairs);
+		val=contract_type::run(val,nbval,ind_pairs);
 	}
 
 	/*
@@ -202,8 +206,8 @@ namespace net{
 	*
 	*/
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
-	template <typename Condition>
-	void node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::harmless_absorb_nb(NodeVal & thisval, absorb_type<NodeVal,EdgeVal,EdgeKey> absorb_fun,
+	template <typename absorb_type,typename Condition>
+	void node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::harmless_absorb_nb(NodeVal & thisval,
 		std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> & ind_pairs,Condition&& cond){
 
 
@@ -212,7 +216,7 @@ namespace net{
 			if (cond(b)) {
 				//std::cout<<"edgehere"<<b.first<<' '<<b.second.nbkey<<'\n';
 				ind_pairs.insert(std::make_pair(b.first,b.second.nbind));
-				thisval=absorb_fun(thisval,b.second.val,b.first);
+				thisval=absorb_type::run(thisval,b.second.val,b.first);
 			}
 		}
 	}
@@ -307,28 +311,31 @@ namespace net{
 			b.second.nbitr=nodes.find(b.second.nbkey);
 	}
 
-	template<typename NodeVal1,typename EdgeVal1,typename NodeVal2,typename EdgeVal2, typename NodeKey, typename EdgeKey, typename Trait>
-	node<NodeVal2,EdgeVal2,NodeKey,EdgeKey,Trait> fmap(const node<NodeVal1,EdgeVal1,NodeKey,EdgeKey,Trait> & n,
-		std::function<NodeVal2(const NodeVal1 &)> f1,std::function<EdgeVal2(const EdgeVal1 &)> f2){
+	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
+	template<typename NodeType2>
+	NodeType2 node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::fmap(std::function<typename NodeType2::NodeValType(const NodeVal &)> f1,
+		std::function<typename NodeType2::EdgeValType(const EdgeVal &)> f2) const{
 
-		node<NodeVal2,EdgeVal2,NodeKey,EdgeKey,Trait> result;
-		result.val=f1(n.val);
-		for (auto & b:n.edges)
-			result.edges[b.first]=edge<NodeVal2,EdgeVal2,NodeKey,EdgeKey,Trait>
-				(b.second.nbkey,b.second.nbind,f2(b.second.val));
+		NodeType2 result;
+		result.val=f1(val);
+		for (auto & b:edges)
+			result.edges[b.first]=
+				typename NodeType2::EdgeType(b.second.nbkey,b.second.nbind,f2(b.second.val));
 		return result;
 	}
 
-	template<typename NodeVal1,typename EdgeVal1,typename NodeVal2,typename EdgeVal2, typename NodeKey, typename EdgeKey, typename Trait>
-	node<NodeVal2,EdgeVal2,NodeKey,EdgeKey,Trait> fmap(const node<NodeVal1,EdgeVal1,NodeKey,EdgeKey,Trait> & n,
-		std::function<NodeVal2(const NodeVal1 &)> f1,std::function<EdgeVal2(const EdgeVal1 &)> f2,std::function<NodeKey(const NodeKey &)> f3,
-		std::function<EdgeKey(const EdgeKey &)> f4){
+	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
+	template<typename NodeType2>
+	NodeType2 node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::fmap(std::function<typename NodeType2::NodeValType(const NodeVal &)> f1,
+		std::function<typename NodeType2::EdgeValType(const EdgeVal &)> f2,
+		std::function<typename NodeType2::NodeKeyType(const NodeKey &)> f3,
+		std::function<typename NodeType2::EdgeKeyType(const EdgeKey &)> f4) const{
 
-		node<NodeVal2,EdgeVal2,NodeKey,EdgeKey,Trait> result;
-		result.val=f1(n.val);
-		for (auto & b:n.edges)
-			result.edges[f4(b.first)]=edge<NodeVal2,EdgeVal2,NodeKey,EdgeKey,Trait>
-				(f3(b.second.nbkey),f4(b.second.nbind),f2(b.second.val));
+		NodeType2 result;
+		result.val=f1(val);
+		for (auto & b:edges)
+			result.edges[f4(b.first)]=
+				typename NodeType2::EdgeType(f3(b.second.nbkey),f4(b.second.nbind),f2(b.second.val));
 		return result;
 	}
 

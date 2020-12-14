@@ -29,27 +29,27 @@ namespace net{
 std::string base64_encode(const std::string &in);
 
 #ifdef NET_GRAPH_VIZ
-	std::string render(std::string dot_content);
-	void show_fig(const std::string & fig_content,bool tmux);
+	std::string render(std::string dot_content,const std::string & engine);
+	void show_fig(const std::string & fig_content,bool tmux,bool st);
 
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
-	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::draw_to_file(const std::string & filename,const bool label_bond){
+	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::draw_to_file(const std::string & filename,const std::string & title,const bool label_bond){
 
-		draw(filename,{},label_bond);
+		draw(filename,{{}},label_bond);
 	}
 
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
-	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::draw_to_file(const std::string & filename,
-		const std::set<NodeKey,typename Trait::nodekey_less> & contains,const bool label_bond){
+	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::draw_to_file(const std::string & filename,const std::string & title,
+		const std::vector<std::set<NodeKey,typename Trait::nodekey_less>> & contains,const bool label_bond){
 
 		std::ofstream fig_file(filename, std::ios::binary);
 		if(nodes.size()>0){
-			fig_file<<render(gviz(contains,label_bond));
+			fig_file<<render(gviz(contains,label_bond),"sfdp");
 		}
 
 	}
 
-	inline std::string render(std::string dot_content){
+	inline std::string render(std::string dot_content,const std::string & engine){
 	    GVC_t *gvc;
 	    Agraph_t *g;
 	    char * cres;
@@ -57,7 +57,7 @@ std::string base64_encode(const std::string &in);
 	    unsigned int  len;
 	    gvc = gvContext();
 	    g = agmemread(dot_content.c_str());
-	    gvLayout(gvc, g, "sfdp");
+	    gvLayout(gvc, g, engine.c_str());
 	    gvRenderData(gvc, g, "png", &cres,&len);
 		res = std::string(cres,len);
 		gvFreeRenderData (cres);
@@ -67,20 +67,22 @@ std::string base64_encode(const std::string &in);
 	}
 
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
-	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::draw(const bool label_bond){
+	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::draw(const std::string & title,const bool label_bond){
 
-		draw({},label_bond);
+		draw(title,{{}},label_bond);
 	}
 
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
-	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::draw(const std::set<NodeKey,typename Trait::nodekey_less> & contains,const bool label_bond){
+	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::draw(const std::string & title,const std::vector<std::set<NodeKey,typename Trait::nodekey_less>> & contains,const bool label_bond){
 
+		consistency();
 		if(nodes.size()==0){
 			std::cout<<"-----------------------------------------------\n";
 			std::cout<<"empty lattice\n";
 			std::cout<<"-----------------------------------------------\n";
 		}else{
-			show_fig(render(gviz(contains,label_bond)),false);
+			show_fig(render(gviz(title,contains,label_bond),"sfdp"),false,false);
+			show_fig(render(gviz_legend(contains),"neato"),false,true);
 		}
 
 	}
@@ -118,7 +120,7 @@ std::string base64_encode(const std::string &in);
 	}
 #endif
 
-	inline void show_fig(const std::string & fig_content,bool tmux){
+	inline void show_fig(const std::string & fig_content,bool tmux,bool stop_tag){
 #if defined NET_SHOW_FIG_USE_ITERM
 		if(tmux){
 			std::cout<<"\033Ptmux;\033\033]";
@@ -133,8 +135,10 @@ std::string base64_encode(const std::string &in);
 			std::cout<<"\a";
 		}
 		std::cout<<"\n";
-		std::cout<<"\x1B[31mPaused.\x1B[0m Please press enter to continue.\n";
-		std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+		if(stop_tag){
+			std::cout<<"\x1B[31mPaused.\x1B[0m Please press enter to continue.\n";
+			std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+		}
 #elif defined NET_SHOW_FIG_USE_CLING
 		show_mime({{"text/html","<img src='data:image/png;base64, "+base64_encode(fig_content)+"'></img>"}});
 #elif defined  NET_SHOW_FIG_USE_GWENVIEW

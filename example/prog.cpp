@@ -9,7 +9,6 @@
 #include <net/net.hpp>
 #include <net/tensor_network.hpp>
 #define str std::to_string
-#define vec std::vector
 
 int main(){
 	using namespace std::placeholders;
@@ -79,7 +78,7 @@ int main(){
 
 	lat2.init_nodes(std::bind(net::tensor::init_node_rand<net::stdEdgeKey>, _1,8,-1.,1.,std::ref(random_engine)));
 
-	lat2.absorb("ten1_1","ten1_2",net::tensor::no_absorb<double>,net::tensor::contract<double>);
+	lat2.absorb<net::no_absorb,net::tensor::tensor_contract>("ten1_1","ten1_2");
 	benchmark.stop("square");
 
 
@@ -90,7 +89,7 @@ int main(){
 
 
 	benchmark.start("contract");
-	double tot = lat2.contract(net::tensor::no_absorb<double>,net::tensor::contract<double>);
+	double tot = lat2.contract<net::no_absorb,net::tensor::tensor_contract>();
 	benchmark.stop("contract");
 	//std::cout<<"here2\n";
 
@@ -102,7 +101,7 @@ int main(){
 		for (int j=0;j<4;++j){
 			//std::cout<<i<<"----"<<j<<"\n";
 			if (lat2.exist("ten"+str(i)+"_"+str(j))){
-				tnt.absorb("ten"+str(i)+"_"+str(j),net::tensor::no_absorb<double>,net::tensor::contract<double>);
+				tnt.absorb<net::no_absorb,net::tensor::tensor_contract>("ten"+str(i)+"_"+str(j));
 				//tnt.draw("test",true);
 			}	
 		}
@@ -116,6 +115,7 @@ int main(){
 	if(lat2.consistency(std::cout)) std::cout<<"Network is consistent!"<<std::endl;
 
 	lat2.draw(true);
+	lat2.consistency();
 	//lat3.draw(true);
 	return 0;
 }

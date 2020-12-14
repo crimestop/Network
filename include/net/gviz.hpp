@@ -1,6 +1,7 @@
 #ifndef NET_GVIZ_HPP
 #define NET_GVIZ_HPP
 
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <set>
@@ -8,61 +9,38 @@
 #include "error.hpp"
 #include "node.hpp"
 #include "network.hpp"
+#include "gviz_themes.hpp"
 
 namespace net{
 
-	inline std::map<std::string,std::string> gviz_theme1({
-		{"global_bgcolor","transparent"},{"global_fontcolor","White"},{"global_fontname","Monaco"},
-		{"node_strokecolor","White"},{"node_fontcolor","White"},{"node_fontname","Monaco"},
-		{"node_chosen_strokecolor","Red"},{"node_chosen_fontcolor","White"},{"node_chosen_fontname","Monaco"},
-		{"edge_strokecolor","White"},{"edge_fontcolor","White"},{"edge_fontname","Monaco"},
-		{"edge_chosen_strokecolor","Red"},{"edge_chosen_fontcolor","White"},{"edge_chosen_fontname","Monaco"}});
-
-	inline std::map<std::string,std::string> gviz_theme2({
-		{"global_bgcolor","White"},{"global_fontcolor","Black"},{"global_fontname","Monaco"},
-		{"node_strokecolor","Black"},{"node_fontcolor","Black"},{"node_fontname","Monaco"},
-		{"node_chosen_strokecolor","Red"},{"node_chosen_fontcolor","Black"},{"node_chosen_fontname","Monaco"},
-		{"edge_strokecolor","Black"},{"edge_fontcolor","Black"},{"edge_fontname","Monaco"},
-		{"edge_chosen_strokecolor","Red"},{"edge_chosen_fontcolor","Black"},{"edge_chosen_fontname","Monaco"}});
-
-	inline std::map<std::string,std::string> gviz_theme3({
-		{"global_bgcolor","transparent"},{"global_fontcolor","Black"},{"global_fontname","Monaco"},
-		{"node_strokecolor","Black"},{"node_fontcolor","Black"},{"node_fontname","Monaco"},
-		{"node_chosen_strokecolor","Red"},{"node_chosen_fontcolor","Black"},{"node_chosen_fontname","Monaco"},
-		{"edge_strokecolor","Black"},{"edge_fontcolor","Black"},{"edge_fontname","Monaco"},
-		{"edge_chosen_strokecolor","Red"},{"edge_chosen_fontcolor","Black"},{"edge_chosen_fontname","Monaco"}});
-
-	inline std::map<std::string,std::string> gviz_theme=gviz_theme1;
-
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
-	std::string network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::gviz(const std::set<NodeKey,typename Trait::nodekey_less> & contains,const bool label_bond){
+	std::string network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::gviz(const std::string & title,
+		const std::vector<std::set<NodeKey,typename Trait::nodekey_less>> & groups,const bool label_bond){
 
 		std::stringstream dot_content;
-		bool fst_attr;
+		std::string grp;
 		std::set<NodeKey,typename Trait::nodekey_less> drawn_nodes;
 		
 		dot_content<<"digraph G {\n";
 		dot_content<<"  scale=0.6\n";
 		dot_content<<"  dpi=160\n";
-		dot_content<<"  bgcolor=\""+gviz_theme["global_bgcolor"]+"\"\n";
-		dot_content<<"  fontcolor="+gviz_theme["global_fontcolor"]+"\n";
-		dot_content<<"  fontname=\""+gviz_theme["global_fontname"]+"\"\n";
-		if(name==""){
-			dot_content<<"  label = \"figure of network\"\n";
-		}else{
-			dot_content<<"  label = \"figure of "+name+"\"\n";
-		}
+		dot_content<<"  bgcolor="<<gviz_theme["global_bgcolor"]<<"\n";
+		dot_content<<"  fontcolor="<<gviz_theme["global_fontcolor"]<<"\n";
+		dot_content<<"  fontname="<<gviz_theme["global_fontname"]<<"\n";
+		dot_content<<"  label = \""<<title<<"\"\n";
 		
-
 		for(auto& s_it:nodes){
 			auto & nodekey1=s_it.first;
-			if (contains.count(nodekey1)==1){
-				dot_content<<"  "<<Trait::nodekey_brief(nodekey1)<<" [ color="+gviz_theme["node_chosen_strokecolor"]+", label = \""<<
-				Trait::nodekey_brief(nodekey1)<<"\", fontcolor="+gviz_theme["node_chosen_fontcolor"]+", fontname=\""+gviz_theme["node_chosen_fontname"]+"\"]\n";
-			}else{
-				dot_content<<"  "<<Trait::nodekey_brief(nodekey1)<<" [ color="+gviz_theme["node_strokecolor"]+", label = \""<<
-				Trait::nodekey_brief(nodekey1)<<"\", fontcolor="+gviz_theme["node_fontcolor"]+", fontname=\""+gviz_theme["node_fontname"]+"\"]\n";
-			}
+			grp="def";
+			for(int i=0;i<groups.size();++i)
+				if (groups[i].count(nodekey1)==1)
+					grp=std::to_string(i);
+			dot_content<<"  "<<Trait::nodekey_brief(nodekey1)<<
+				" [ color="<<gviz_theme["group"+grp].value("node_strokecolor",gviz_theme["node_strokecolor"])<<
+				", label = \""<<Trait::nodekey_brief(nodekey1)<<
+				"\", fontcolor="<<gviz_theme["group"+grp].value("node_fontcolor",gviz_theme["node_fontcolor"])<<
+				", fontname="<<gviz_theme["group"+grp].value("node_fontname",gviz_theme["node_fontname"])<<"]\n";
+
 		}
 		dot_content<<"subgraph bond {\n";
 		dot_content<<"  edge[dir=none]\n";
@@ -74,11 +52,14 @@ namespace net{
 				auto & nodekey2=b_it.second.nbkey;
 				auto & ind2=b_it.second.nbind;
 				if (drawn_nodes.count(nodekey2)==0){
-					dot_content<<"  "<<Trait::nodekey_brief(nodekey1)<<" -> "<<Trait::nodekey_brief(nodekey2);
-					if(contains.count(nodekey1)==1 && contains.count(nodekey2)==1)
-						dot_content<<" [fontcolor="+gviz_theme["edge_chosen_fontcolor"]+", fontname=\""+gviz_theme["edge_chosen_fontname"]+"\", color="+gviz_theme["edge_chosen_strokecolor"];
-					else
-						dot_content<<" [fontcolor="+gviz_theme["edge_fontcolor"]+", fontname=\""+gviz_theme["edge_fontname"]+"\", color="+gviz_theme["edge_strokecolor"];
+					grp="def";
+					for(int i=0;i<groups.size();++i)
+						if (groups[i].count(nodekey1)==1 && groups[i].count(nodekey2)==1)
+							grp=std::to_string(i);
+					dot_content<<"  "<<Trait::nodekey_brief(nodekey1)<<" -> "<<Trait::nodekey_brief(nodekey2)<<
+						" [fontcolor="<<gviz_theme["group"+grp].value("edge_fontcolor",gviz_theme["edge_fontcolor"])<<
+						", fontname="<<gviz_theme["group"+grp].value("edge_fontname",gviz_theme["edge_fontname"])<<
+						", color="<<gviz_theme["group"+grp].value("edge_strokecolor",gviz_theme["edge_strokecolor"]);
 					if(label_bond)
 						dot_content<<", taillabel = \""<<Trait::edgekey_brief(ind1)<<"\",headlabel =\""<<Trait::edgekey_brief(ind2)<<"\"";
 					dot_content<<", len=3]\n";
@@ -87,8 +68,50 @@ namespace net{
 			drawn_nodes.insert(nodekey1);
 		}
 
+		dot_content<<"}\n}\n";
+
+		// std::cout<<dot_content.str();
+		return dot_content.str();
+
+	}
+
+	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
+	std::string network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::gviz_legend(
+		const std::vector<std::set<NodeKey,typename Trait::nodekey_less>> & groups){
+
+		std::stringstream dot_content;
+		std::string grp;
+		std::set<NodeKey,typename Trait::nodekey_less> drawn_nodes;
+		
+		dot_content<<"digraph G {\n";
+		dot_content<<"  scale=0.6\n";
+		dot_content<<"  dpi=160\n";
+		dot_content<<"  bgcolor="<<gviz_theme["global_bgcolor"]<<"\n";
+
+		int i=0;
+		grp="def";
+		dot_content<<"  node"<<std::to_string(i)<<
+				" [ color="<<gviz_theme["group"+grp].value("node_strokecolor",gviz_theme["node_strokecolor"])<<
+				", label = \"group"<<grp<<"\", fontcolor="<<gviz_theme["group"+grp].value("node_fontcolor",gviz_theme["node_fontcolor"])<<
+				", fontname="<<gviz_theme["group"+grp].value("node_fontname",gviz_theme["node_fontname"])<<", pos=\""<<std::to_string(3*i)<<","<<std::to_string(-i/6)<<"!\"]\n";
+		for(auto & g:groups){
+			for (auto & p:g){
+				if(nodes.count(p)>0){
+					++i;
+					grp=std::to_string(i-1);
+					dot_content<<"  node"<<std::to_string(i)<<
+							" [ color="<<gviz_theme["group"+grp].value("node_strokecolor",gviz_theme["node_strokecolor"])<<
+							", label = \"group"<<grp<<"\", fontcolor="<<gviz_theme["group"+grp].value("node_fontcolor",gviz_theme["node_fontcolor"])<<
+							", fontname="<<gviz_theme["group"+grp].value("node_fontname",gviz_theme["node_fontname"])<<", pos=\""<<std::to_string(3*i)<<","<<std::to_string(-i/6)<<"!\"]\n";
+					break;
+				}
+			}
+		}
+		
+
 		dot_content<<"}\n";
-		dot_content<<"}\n";
+
+		// std::cout<<dot_content.str();
 		return dot_content.str();
 
 	}

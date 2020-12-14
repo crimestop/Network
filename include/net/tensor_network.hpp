@@ -5,11 +5,20 @@
 #include "network.hpp"
 #include "tensor_tools.hpp"
 #include "traits.hpp"
+#include "tensor_contract.hpp"
 #include <random>
 #include <variant>
 #include <functional>
 
 namespace net{
+
+	struct no_absorb{
+		template<typename NodeVal,typename EdgeVal,typename EdgeKey>
+		static NodeVal run(const NodeVal& ten1,const EdgeVal& ten2,const EdgeKey & ind){
+			return ten1;
+		}
+	};
+
 	namespace tensor{
 		// template <typename T,typename EdgeKey=stdEdgeKey>
 		// using Tensor=TAT::Tensor<T,TAT::NoSymmetry,EdgeKey>;
@@ -50,21 +59,20 @@ namespace net{
 			ten3=ten1;
 		}
 
-		template <typename T,typename EdgeKey=stdEdgeKey>
-		Tensor<T,EdgeKey> absorb(const Tensor<T,EdgeKey>& ten1,const Tensor<T,EdgeKey>& ten2,const EdgeKey & ind){
-			return ten1.contract(ten2,{{ind,ten2.names[0]}}).edge_rename({{ten2.names[1],ind}});
-		}
+		struct tensor_absorb{
+			template <typename T,typename EdgeKey=stdEdgeKey>
+			static Tensor<T,EdgeKey> run(const Tensor<T,EdgeKey>& ten1,const Tensor<T,EdgeKey>& ten2,const EdgeKey & ind){
+				return ten1.contract(ten2,{{ind,ten2.names[0]}}).edge_rename({{ten2.names[1],ind}});
+			}
+		};
 
-		template <typename T,typename EdgeKey=stdEdgeKey,typename V=Tensor<T,EdgeKey>>
-		Tensor<T,EdgeKey> no_absorb(const Tensor<T,EdgeKey>& ten1,const V& ten2,const EdgeKey & ind){
-			return ten1;
-		}
-
-		template <typename T,typename EdgeKey=stdEdgeKey>
-		Tensor<T,EdgeKey> contract(const Tensor<T,EdgeKey>& ten1,const Tensor<T,EdgeKey>& ten2,
-			const std::set<std::pair<EdgeKey,EdgeKey>> & inds){
-			return Tensor<T,EdgeKey>::contract(ten1,ten2,{inds.begin(),inds.end()});
-		}
+		struct tensor_contract{
+			template <typename T,typename EdgeKey=stdEdgeKey>
+			static Tensor<T,EdgeKey> run(const Tensor<T,EdgeKey>& ten1,const Tensor<T,EdgeKey>& ten2,
+				const std::set<std::pair<EdgeKey,EdgeKey>> & inds){
+				return Tensor<T,EdgeKey>::contract(ten1,ten2,{inds.begin(),inds.end()});
+			}
+		};
 
 		template <typename T,typename EdgeKey=stdEdgeKey>
 		std::monostate zero_map(const Tensor<T,EdgeKey> &ten){
@@ -94,11 +102,11 @@ namespace net{
 		
 		template <typename T>
 		TensorNetworkEnv<T> conjugate_tnenv(const TensorNetworkEnv<T> & t){
-			return fmap(t,conjugate_tensor_fun<T>,conjugate_tensor_fun<T>,conjugate_string_fun,conjugate_string_fun);
+			return t.template fmap<TensorNetworkEnv<T>>(conjugate_tensor_fun<T>,conjugate_tensor_fun<T>,conjugate_string_fun,conjugate_string_fun);
 		}
 		template <typename T>
 		TensorNetworkNoEnv<T> conjugate_tnnoenv(const TensorNetworkNoEnv<T> & t){
-			return fmap(t,conjugate_tensor_fun<T>,conjugate_mono_fun,conjugate_string_fun,conjugate_string_fun);
+			return t.template fmap<TensorNetworkNoEnv<T>>(conjugate_tensor_fun<T>,conjugate_mono_fun,conjugate_string_fun,conjugate_string_fun);
 		}
 		template <typename T>
 		TensorNetworkEnv<T> double_tnenv(const TensorNetworkEnv<T> & t){
@@ -112,6 +120,7 @@ namespace net{
 			result.add(t);
 			return result;
 		}
+
 	}
 }
 
