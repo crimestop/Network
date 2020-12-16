@@ -16,6 +16,13 @@
 #include "tensor_tools.hpp"
 
 namespace net{
+	
+	struct no_absorb{
+		template<typename NodeVal,typename EdgeVal,typename EdgeKey>
+		static NodeVal run(const NodeVal& ten1,const EdgeVal& ten2,const EdgeKey & ind){
+			return ten1;
+		}
+	};
 
 	/**
 	* \brief 格点的分解函数的类型
@@ -240,8 +247,8 @@ namespace net{
 		template<typename absorb_type,typename contract_type>
 		NodeVal contract(std::set<NodeKey,typename Trait::nodekey_less>);
 
-		template<typename absorb_type,typename contract_type>
-		NodeVal contract(tree<std::set<NodeKey>>*);
+		template<typename absorb_type,typename contract_type,typename TreeType>
+		NodeVal contract_tree(TreeType*);
 		/**
 		* \brief 缩并的辅助函数
 		*/
@@ -270,6 +277,11 @@ namespace net{
 			std::function<typename NetType2::EdgeValType(const EdgeVal &)> f2,
 			std::function<typename NetType2::NodeKeyType(const NodeKey &)> f3,
 			std::function<typename NetType2::EdgeKeyType(const EdgeKey &)> f4) const;
+
+
+		template<typename NetType2>
+		NetType2 gfmap(std::function<typename NetType2::NodeValType(const NodeKey &,const NodeVal &)> f1,
+			std::function<typename NetType2::EdgeValType(const NodeKey &,const NodeVal &,const NodeKey &,const NodeVal &,const EdgeKey &,const EdgeKey &,const EdgeVal &)> f2) const;
 
 		/**
 		* \brief 网络的格点
@@ -607,20 +619,20 @@ namespace net{
 	}
 
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
-	template<typename absorb_type,typename contract_type>
-	NodeVal network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::contract(tree<std::set<NodeKey>>* contract_tree){
+	template<typename absorb_type,typename contract_type,typename TreeType>
+	NodeVal network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::contract_tree(TreeType* ctree){
 
-		if(contract_tree==nullptr)
+		if(ctree==nullptr)
 			return NodeVal();
-		else if(contract_tree->left_child==nullptr && contract_tree->right_child==nullptr)
-			return contract<absorb_type,contract_type>(contract_tree->val);
-		else if(contract_tree->left_child==nullptr && contract_tree->right_child!=nullptr)
-			return contract<absorb_type,contract_type>(contract_tree->right_child);
-		else if(contract_tree->left_child!=nullptr && contract_tree->right_child==nullptr)
-			return contract<absorb_type,contract_type>(contract_tree->left_child);
+		else if(ctree->left_child==nullptr && ctree->right_child==nullptr)
+			return contract<absorb_type,contract_type>(ctree->val.node_set);
+		else if(ctree->left_child==nullptr && ctree->right_child!=nullptr)
+			return contract_tree<absorb_type,contract_type,TreeType>(ctree->right_child);
+		else if(ctree->left_child!=nullptr && ctree->right_child==nullptr)
+			return contract_tree<absorb_type,contract_type,TreeType>(ctree->left_child);
 		else
-			return tn_contract2<absorb_type,contract_type>(contract_tree->left_child->val,contract<absorb_type,contract_type>(contract_tree->left_child),
-				contract_tree->right_child->val,contract<absorb_type,contract_type>(contract_tree->right_child));
+			return tn_contract2<absorb_type,contract_type>(ctree->left_child->val.node_set,contract_tree<absorb_type,contract_type,TreeType>(ctree->left_child),
+				ctree->right_child->val.node_set,contract_tree<absorb_type,contract_type,TreeType>(ctree->right_child));
 	}
 
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
@@ -701,6 +713,19 @@ namespace net{
 		NetType2 result;
 		for (auto & s:nodes)
 			result.nodes[f3(s.first)]=s.second.template fmap<typename NetType2::NodeType>(f1,f2,f3,f4);
+		for (auto & s:result.nodes)
+			s.second.relink(result.nodes);
+		return result;
+	}
+
+	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
+	template<typename NetType2>
+	NetType2 network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::gfmap(std::function<typename NetType2::NodeValType(const NodeKey &,const NodeVal &)> f1,
+		std::function<typename NetType2::EdgeValType(const NodeKey &,const NodeVal &,const NodeKey &,const NodeVal &,const EdgeKey &,const EdgeKey &,const EdgeVal &)> f2) const{
+
+		NetType2 result;
+		for (auto & s:nodes)
+			result.nodes[s.first]=s.second.template gfmap<typename NetType2::NodeType>(s.first,f1,f2);
 		for (auto & s:result.nodes)
 			s.second.relink(result.nodes);
 		return result;

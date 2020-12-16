@@ -13,7 +13,7 @@
 int main(){
 	using namespace std::placeholders;
 	
-	net::tensor::TensorNetworkEnv<double> lat("test"),cjlat("cjtest");
+	net::tensor::TensorNetworkEnv<double> lat,cjlat;
 	int seed =std::random_device()();
 	std::default_random_engine random_engine(seed);
 	timer benchmark;
@@ -31,10 +31,10 @@ int main(){
 
 	std::cout<<lat<<std::endl;
 
-	lat.draw(true);
+	lat.draw("test",true);
 	cjlat=net::tensor::double_tnenv(lat);
 
-	cjlat.draw(true);
+	cjlat.draw("cjtest",true);
 
 
 
@@ -45,7 +45,7 @@ int main(){
 
 	benchmark.start("square");
 
-	net::tensor::TensorNetworkEnv<double> lat2("square");
+	net::tensor::TensorNetworkEnv<double> lat2;
 	for(int i=0;i<4;++i){
 		for (int j=0;j<4;++j){
 			//std::cout<<i<<j<<"\n";
@@ -65,7 +65,7 @@ int main(){
 		}
 	}
 
-	lat2.draw(true);
+	lat2.draw("square",true);
 	//TAT::Tensor<double> a,b;
 	//std::ofstream("ten.dat", std::ios::out)<<a;
 	//std::ifstream("ten.dat", std::ios::in)>>b;
@@ -114,7 +114,7 @@ int main(){
 
 	if(lat2.consistency(std::cout)) std::cout<<"Network is consistent!"<<std::endl;
 
-	lat2.draw(true);
+	lat2.draw("square",true);
 	lat2.consistency();
 	//lat3.draw(true);
 	return 0;

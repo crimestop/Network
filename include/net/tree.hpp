@@ -32,10 +32,20 @@ namespace net{
 	template<typename contract_type>
 	struct Tree_combine{
 		template<typename Data,typename NoUse>
-		static tree<Data>* run( tree<Data>* const & a,tree<Data>* const & b,const NoUse & C){
-			return new tree<Data>(contract_type::run(a->val,b->val),a,b);
+		static tree<Data>* run( tree<Data>* const & a,tree<Data>* const & b,const NoUse & c){
+			return new tree<Data>(contract_type::contract(a->val,b->val),a,b);
 		}
 	};
+
+	template<typename absorb_type>
+	struct Tree_act{
+		template<typename Data,typename Data2,typename NoUse>
+		static tree<Data>* run( tree<Data>* const & a, const Data2 & b,const NoUse & c){
+			a->val=absorb_type::absorb(a->val,b);
+			return a;
+		}
+	};
+
 	template<typename Data>
 	void gviz_nodes(tree<Data>* node, std::ostream& dot_content, const std::string & nodename){
 

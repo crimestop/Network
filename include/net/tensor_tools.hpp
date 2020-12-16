@@ -18,6 +18,10 @@ namespace net{
 		int get_dim(Tensor<T,EdgeKey> ten, int s){
 			return ten.core->edges[s].map[TAT::NoSymmetry()];
 		}
+		template<typename T,typename EdgeKey=stdEdgeKey>
+		int get_size(Tensor<T,EdgeKey> ten){
+			return ten.const_block().size();
+		}
 
 		template<typename T,typename EdgeKey=stdEdgeKey>
 		int get_dim(Tensor<T,EdgeKey> ten, EdgeKey s){

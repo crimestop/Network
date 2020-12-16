@@ -8,6 +8,8 @@
 #include <net/net.hpp>
 #include <net/tree.hpp>
 #include "timer.h"
+#include <chrono>
+#include <algorithm>
 #include <net/tensor_contract.hpp>
 #include <net/tensor_network.hpp>
 #define str std::to_string
@@ -24,7 +26,7 @@ int main(){
 	// for(auto & i: tree3->val ) std::cout<<i<<" **************\n";
 	// 	std::cout<<"finish **************\n";
 
-	int L1=20,L2=2,dim=4;
+	int L1=6,L2=6,dim=4;
 
 	using namespace std::placeholders;
 	int seed =std::random_device()();
@@ -87,27 +89,82 @@ int main(){
 	// 		std::cout<<"finish **************\n";
 
 
-	auto ctree = net::get_contract_tree<double>(lat2,eg);
 
+
+	std::chrono::steady_clock::time_point start_time;
+	std::chrono::duration<double> cumu_time;
+
+	// for(int i=4;i<5;++i){
+	// 	eg.cut_part=i;
+	// 	for(int j=0;j<4;++j){
+	// 		eg.uneven=0.2*(4-j);
+	// 		std::cout<<"part = "<<eg.cut_part<<" uneven = "<<eg.uneven<<' ';
+	// 		//std::vector<double> test_time;
+	// 		std::vector<long long int> test_count;
+	// 		for(int k=0;k<10;++k){
+	// 			auto ctree = net::get_contract_tree_test<double>(lat2,eg);
+	// 			// start_time=std::chrono::steady_clock::now();
+	// 			// net::tensor::Tensor<double> ten = lat2.contract<net::no_absorb,net::tensor::tensor_contract>(ctree);
+	// 			// cumu_time=std::chrono::steady_clock::now()-start_time;
+	// 			// test_time.push_back(cumu_time.count());
+	// 			// std::cout<<cumu_time.count()<<' ';
+	// 			test_count.push_back(ctree->val.contraction_cost);
+	// 			std::cout<<' '<<ctree->val.hist_max_weight<<','<<ctree->val.contraction_cost<<' ';
+	// 			delete ctree;
+	// 		}
+	// 		//std::vector<double>::iterator mintime = std::min_element(test_time.begin(), test_time.end());
+	// 		//std::cout<<"min = "<<*mintime<<'\n';
+	// 		std::vector<long long int>::iterator mincount = std::min_element(test_count.begin(), test_count.end());
+	// 		std::cout<<"min = "<<*mincount<<'\n';
+	// 	}
+	// }
+
+
+
+	for(int i=4;i<5;++i){
+		eg.cut_part=i;
+		for(int j=0;j<4;++j){
+			eg.uneven=0.2*(4-j);
+			std::cout<<"part = "<<eg.cut_part<<" uneven = "<<eg.uneven<<' ';
+			//std::vector<double> test_time;
+			std::vector<double> test_count;
+			for(int k=0;k<10;++k){
+				auto ctree = net::get_contract_tree<net::contract_info2>(lat2,eg);
+				// start_time=std::chrono::steady_clock::now();
+				// net::tensor::Tensor<double> ten = lat2.contract<net::no_absorb,net::tensor::tensor_contract>(ctree);
+				// cumu_time=std::chrono::steady_clock::now()-start_time;
+				// test_time.push_back(cumu_time.count());
+				// std::cout<<cumu_time.count()<<' ';
+				test_count.push_back(ctree->val.contraction_cost);
+				std::cout<<' '<<ctree->val.hist_max_weight<<','<<ctree->val.contraction_cost<<' ';
+				delete ctree;
+			}
+			//std::vector<double>::iterator mintime = std::min_element(test_time.begin(), test_time.end());
+			//std::cout<<"min = "<<*mintime<<'\n';
+			std::vector<double>::iterator mincount = std::min_element(test_count.begin(), test_count.end());
+			std::cout<<"min = "<<*mincount<<'\n';
+		}
+	}
+	auto ctree2 = net::get_contract_tree_qbb<net::keyset>(lat2,eg);
+
+
+	auto ctree = net::get_contract_tree<net::keyset>(lat2,eg);
 	//net::tree<typename decltype(temp)::NodeKeySetType>* ctree = eg.contract<net::Tree_combine<set_contract>>(temp2,includes);
 	//net::tensor::Tensor<double> ten = eg.contract<net::tensor::tensor_contract>(temp,includes);
-	eg.max_quickbb_size=1000;
-	//net::tree<typename decltype(temp)::NodeKeySetType>* ctree2 = eg.contract<net::Tree_combine<set_contract>>(temp2,includes);
-
-	auto ctree2 = net::get_contract_tree<double>(lat2,eg);
+	//auto ctree2 = net::get_contract_tree_quickbb<double>(lat2,eg);
 
 	//ctree->draw();
 	timer benchmark;
 
-	benchmark.start("divide");
-	net::tensor::Tensor<double> ten = lat2.contract<net::no_absorb,net::tensor::tensor_contract>(ctree);
-	benchmark.stop("divide");
-	benchmark.start("quickbb");
-	net::tensor::Tensor<double> ten2 = lat2.contract<net::no_absorb,net::tensor::tensor_contract>(ctree2);
-	benchmark.stop("quickbb");
-	benchmark.start("naive");
+
+	start_time=std::chrono::steady_clock::now();
+	net::tensor::Tensor<double> ten2 = lat2.contract_tree<net::no_absorb,net::tensor::tensor_contract>(ctree2);
+	cumu_time=std::chrono::steady_clock::now()-start_time;
+	std::cout<<"quickbb "<<cumu_time.count()<<'\n';
+	start_time=std::chrono::steady_clock::now();
 	net::tensor::Tensor<double> ten3 = lat2.contract<net::no_absorb,net::tensor::tensor_contract>();
-	benchmark.stop("naive");
+	cumu_time=std::chrono::steady_clock::now()-start_time;
+	std::cout<<"naive "<<cumu_time.count()<<'\n';
 
 
 	benchmark.print();

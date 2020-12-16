@@ -131,6 +131,10 @@ namespace net{
 			std::function<typename NodeType2::EdgeValType(const EdgeVal &)> f2,
 			std::function<typename NodeType2::NodeKeyType(const NodeKey &)> f3,
 			std::function<typename NodeType2::EdgeKeyType(const EdgeKey &)> f4) const;
+
+		template<typename NodeType2>
+		NodeType2 gfmap(const NodeKey & thiskey,std::function<typename NodeType2::NodeValType(const NodeKey &,const NodeVal &)> f1,
+			std::function<typename NodeType2::EdgeValType(const NodeKey &,const NodeVal &,const NodeKey &,const NodeVal &,const EdgeKey &,const EdgeKey &,const EdgeVal &)> f2) const;
 		/**
 		 * \brief 格点所附着的信息
 		 */
@@ -309,6 +313,21 @@ namespace net{
 	void node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::relink(std::map<NodeKey,node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>,typename Trait::nodekey_less> & nodes){
 		for (auto & b: edges)
 			b.second.nbitr=nodes.find(b.second.nbkey);
+	}
+
+	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
+	template<typename NodeType2>
+	NodeType2 node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::gfmap(const NodeKey & thiskey,std::function<typename NodeType2::NodeValType(const NodeKey &,const NodeVal &)> f1,
+		std::function<typename NodeType2::EdgeValType(const NodeKey &,const NodeVal &,const NodeKey &,const NodeVal &,const EdgeKey &,const EdgeKey &,const EdgeVal &)> f2) const{
+
+		NodeType2 result;
+		result.val=f1(thiskey,val);
+		for (auto & b:edges)
+			result.edges[b.first]=
+				typename NodeType2::EdgeType(b.second.nbkey,b.second.nbind,
+					f2(thiskey,val,b.second.nbkey,b.second.nbitr->second.val,b.first,b.second.nbind,b.second.val));
+		return result;
+
 	}
 
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>

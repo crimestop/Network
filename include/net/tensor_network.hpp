@@ -12,13 +12,6 @@
 
 namespace net{
 
-	struct no_absorb{
-		template<typename NodeVal,typename EdgeVal,typename EdgeKey>
-		static NodeVal run(const NodeVal& ten1,const EdgeVal& ten2,const EdgeKey & ind){
-			return ten1;
-		}
-	};
-
 	namespace tensor{
 		// template <typename T,typename EdgeKey=stdEdgeKey>
 		// using Tensor=TAT::Tensor<T,TAT::NoSymmetry,EdgeKey>;
@@ -118,6 +111,16 @@ namespace net{
 		TensorNetworkNoEnv<T> double_tnnoenv(const TensorNetworkNoEnv<T> & t){
 			TensorNetworkNoEnv<T> result=conjugate_tnnoenv(t);
 			result.add(t);
+			return result;
+		}
+
+		template <typename Network>
+		typename Network::NodeValType contract_quickbb(const Network & n){
+			typename Network::NodeValType result;
+			Engine eg;
+			auto ctree = net::get_contract_tree_qbb<net::keyset>(n,eg);
+			result=n.template contract_tree<no_absorb,tensor::tensor_contract>(ctree);
+			delete ctree;
 			return result;
 		}
 
