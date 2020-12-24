@@ -104,7 +104,7 @@ namespace net{
 		template<typename absorb_type,typename contract_type>
 		void absorb_nb(const NodeKey &,const NodeVal &);
 		template <typename absorb_type,typename Condition>
-		void harmless_absorb_nb(NodeVal &,std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> &,Condition&&);
+		void harmless_absorb_nb(NodeVal &,std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> &,Condition&&) const;
 
 		void transfer_edge(const typename network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::IterNode &,bool );
 		template <typename Condition>
@@ -212,7 +212,7 @@ namespace net{
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	template <typename absorb_type,typename Condition>
 	void node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::harmless_absorb_nb(NodeVal & thisval,
-		std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> & ind_pairs,Condition&& cond){
+		std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> & ind_pairs,Condition&& cond) const{
 
 
 		for(auto & b:edges) {

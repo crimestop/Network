@@ -13,6 +13,15 @@ namespace net{
 	using stdEdgeKey=std::string;
 	//using stdEdgeKey=std::pair<std::string,std::string>;
 
+	template<typename single_less>
+	struct double_less{
+		template<typename double_type>
+		bool operator()(const double_type & a,const double_type & b){
+			single_less comp;
+			return comp(a.first,b.first) || (!comp(b.first,a.first) && comp(a.second,b.second));
+		}
+	}
+
 	template<typename EdgeKey>
 	struct base_edgekey_traits{
 		static std::string edgekey_brief(const EdgeKey & edgekey){
@@ -21,7 +30,6 @@ namespace net{
 			return a.str();
 		}
 		using edgekey_less=std::less<EdgeKey>;
-		using edge2key_less=std::less<std::pair<EdgeKey,EdgeKey>>;
 		static std::ostream & edgekey_write_text(std::ostream & os, const EdgeKey & edgekey){
 			return default_write_text(os,edgekey);
 		}
@@ -60,7 +68,7 @@ namespace net{
 
 	template<typename EdgeKey,typename NodeKey>
 	struct base_bind_traits{
-		static NodeKey bind(const EdgeKey & edgekey1,const EdgeKey & edgekey2);
+		static EdgeKey bind(const NodeKey & nodekey1,const NodeKey & nodekey2);
 	};
 
 	template<typename EdgeVal>

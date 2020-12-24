@@ -242,25 +242,25 @@ namespace net{
 		* \brief 缩并整个网络
 		*/
 		template<typename absorb_type,typename contract_type>
-		NodeVal contract();
+		NodeVal contract() const;
 
 		template<typename absorb_type,typename contract_type>
-		NodeVal contract(std::set<NodeKey,typename Trait::nodekey_less>);
+		NodeVal contract(std::set<NodeKey,typename Trait::nodekey_less>) const;
 
 		template<typename absorb_type,typename contract_type,typename TreeType>
-		NodeVal contract_tree(TreeType*);
+		NodeVal contract_tree(TreeType*) const;
 		/**
 		* \brief 缩并的辅助函数
 		*/
 		template<typename absorb_type,typename contract_type>
-		void tn_contract1(const NodeKey &,const std::set<NodeKey,typename Trait::nodekey_less> &,NodeVal&);
+		void tn_contract1(const NodeKey &,const std::set<NodeKey,typename Trait::nodekey_less> &,NodeVal&) const;
 		template<typename absorb_type,typename contract_type>
-		void tn_contract1(IterNode,const std::set<NodeKey,typename Trait::nodekey_less> &,NodeVal&);
+		void tn_contract1(IterNode,const std::set<NodeKey,typename Trait::nodekey_less> &,NodeVal&) const;
 		/**
 		* \brief 缩并的辅助函数
 		*/
 		template<typename absorb_type,typename contract_type>
-		NodeVal tn_contract2(const std::set<NodeKey,typename Trait::nodekey_less> &,const NodeVal&, const std::set<NodeKey,typename Trait::nodekey_less> &,const NodeVal&);
+		NodeVal tn_contract2(const std::set<NodeKey,typename Trait::nodekey_less> &,const NodeVal&, const std::set<NodeKey,typename Trait::nodekey_less> &,const NodeVal&) const;
 
 	/**
 	* \brief 利用格点上的信息的函数和边上信息的函数从一个网络得到另一个网络
@@ -592,7 +592,7 @@ namespace net{
 
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
 	template<typename absorb_type,typename contract_type>
-	NodeVal network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::contract(){
+	NodeVal network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::contract() const{
 		NodeVal tot;
 		std::set<NodeKey,typename Trait::nodekey_less> contracted;
 		for(auto s:nodes){
@@ -606,7 +606,7 @@ namespace net{
 
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
 	template<typename absorb_type,typename contract_type>
-	NodeVal network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::contract(std::set<NodeKey,typename Trait::nodekey_less> part){
+	NodeVal network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::contract(std::set<NodeKey,typename Trait::nodekey_less> part) const{
 		NodeVal tot;
 		std::set<NodeKey,typename Trait::nodekey_less> contracted;
 		for(auto p:part){
@@ -620,7 +620,7 @@ namespace net{
 
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
 	template<typename absorb_type,typename contract_type,typename TreeType>
-	NodeVal network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::contract_tree(TreeType* ctree){
+	NodeVal network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::contract_tree(TreeType* ctree) const{
 
 		if(ctree==nullptr)
 			return NodeVal();
@@ -637,7 +637,7 @@ namespace net{
 
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
 	template<typename absorb_type,typename contract_type>
-	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::tn_contract1(const NodeKey & nodekey,const std::set<NodeKey,typename Trait::nodekey_less> & group,NodeVal& ten){
+	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::tn_contract1(const NodeKey & nodekey,const std::set<NodeKey,typename Trait::nodekey_less> & group,NodeVal& ten) const{
 
 		auto node_itr1 = nodes.find(nodekey);
 		if(node_itr1 == nodes.end()){
@@ -648,7 +648,7 @@ namespace net{
 			ten=node_itr1->second.val;
 		}else{
 			auto node_t=node_itr1->second.val;
-			std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> ind_pairs;
+			std::set<std::pair<EdgeKey,EdgeKey>,double_less<typename Trait::edgekey_less>> ind_pairs;
 			node_itr1->second.template harmless_absorb_nb<absorb_type>(node_t,ind_pairs,
 				[&group](auto & eg){return group.count(eg.second.nbkey)==1;});
 			ten=contract_type::run(node_t,ten,ind_pairs);
@@ -658,13 +658,13 @@ namespace net{
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
 	template<typename absorb_type,typename contract_type>
 	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::tn_contract1(network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::IterNode it1,
-		const std::set<NodeKey,typename Trait::nodekey_less> & group,NodeVal& ten){
+		const std::set<NodeKey,typename Trait::nodekey_less> & group,NodeVal& ten) const{
 
 		if(group.size()==0){
 			ten=it1->second.val;
 		}else{
 			auto node_t=it1->second.val;
-			std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> ind_pairs;
+			std::set<std::pair<EdgeKey,EdgeKey>,double_less<typename Trait::edgekey_less>> ind_pairs;
 
 			it1->second.template harmless_absorb_nb<absorb_type>(node_t,ind_pairs,
 				[&group](auto & eg){return group.count(eg.second.nbkey)==1;});
@@ -676,16 +676,16 @@ namespace net{
 	template<typename NodeVal,typename EdgeVal,typename NodeKey, typename EdgeKey, typename Trait>
 	template<typename absorb_type,typename contract_type>
 	NodeVal network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::tn_contract2(const std::set<NodeKey,typename Trait::nodekey_less> & group1,const NodeVal& ten1,
-		const std::set<NodeKey,typename Trait::nodekey_less> & group2,const NodeVal& ten2){
+		const std::set<NodeKey,typename Trait::nodekey_less> & group2,const NodeVal& ten2) const{
 
 		if (group1.size()==0)
 			return ten2;
 		if (group2.size()==0)
 			return ten1;
-		std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> ind_pairs;
+		std::set<std::pair<EdgeKey,EdgeKey>,double_less<typename Trait::edgekey_less>> ind_pairs;
 		auto ten1_temp=ten1;
 		for (auto & nk:group1)
-			nodes[nk].template harmless_absorb_nb<absorb_type>(ten1_temp,ind_pairs,
+			nodes.at(nk).template harmless_absorb_nb<absorb_type>(ten1_temp,ind_pairs,
 				[&group2](auto & eg){return group2.count(eg.second.nbkey)==1;});
 		return contract_type::run(ten1_temp,ten2,ind_pairs);
 	}

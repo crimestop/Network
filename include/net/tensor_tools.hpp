@@ -14,21 +14,25 @@ namespace net{
 		template <typename T,typename EdgeKey=stdEdgeKey>
 		using Tensor=TAT::Tensor<T,TAT::NoSymmetry,EdgeKey>;
 
-		template<typename T,typename EdgeKey=stdEdgeKey>
-		int get_dim(Tensor<T,EdgeKey> ten, int s){
+		template<typename TnType>
+		int get_dim(TnType ten, int s){
 			return ten.core->edges[s].map[TAT::NoSymmetry()];
 		}
-		template<typename T,typename EdgeKey=stdEdgeKey>
-		int get_size(Tensor<T,EdgeKey> ten){
+		template<typename TnType>
+		int get_size(TnType ten){
 			return ten.const_block().size();
 		}
-
 		template<typename T,typename EdgeKey=stdEdgeKey>
-		int get_dim(Tensor<T,EdgeKey> ten, EdgeKey s){
+		int get_rank(TnType ten){
+			return ten.names.size();
+		}
+
+		template<typename TnType,typename EdgeKey>
+		int get_dim(TnType ten, EdgeKey s){
 			return ten.core->edges[ten.name_to_index[s]].map[TAT::NoSymmetry()];
 		}
-		template<typename T,typename EdgeKey=stdEdgeKey>
-		void diminfo(Tensor<T,EdgeKey> ten, std::ostream & os){
+		template<typename TnType>
+		void diminfo(TnType ten, std::ostream & os){
 			for(auto & s:ten.names)
 				os<<s<<' '<<ten.core->edges[ten.name_to_index[s]].map[TAT::NoSymmetry()]<<' ';
 			os<<'\n';

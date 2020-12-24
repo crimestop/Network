@@ -28,12 +28,25 @@ namespace net{
 			const unsigned int D,const double min,const double max,std::default_random_engine & R){
 
 			auto distribution = std::uniform_real_distribution<double>(min,max);
-			std::vector<unsigned int> dims;
-			for (auto& ind:str_inds){
-				dims.push_back(D);
-			}
-			Tensor<double> result(str_inds,{dims.begin(), dims.end()});
+			std::vector<unsigned int> dims(str_inds.size(),D);
+			Tensor<double,EdgeKey> result(str_inds,{dims.begin(), dims.end()});
 			return result.set([&distribution, &R]() { return distribution(R); });
+		}
+
+		template <typename T,typename EdgeKey=stdEdgeKey>
+		Tensor<T,EdgeKey> init_node_rand_phy(const std::vector<EdgeKey> & str_inds,
+			const unsigned int D,const unsigned int dphy,std::default_random_engine & R){
+
+			auto distribution = std::uniform_real_distribution<double>(-1.,1.);
+			const std::vector<EdgeKey> inds=str_inds
+			std::vector<unsigned int> dims(str_inds.size(),D);
+			dims.push_back(dphy);
+			Tensor<T,EdgeKey> result(str_inds,{dims.begin(), dims.end()});
+			if constexpr (std::is_same<T,double>)
+				result.set([&distribution, &R]() { return distribution(R); });
+			else if constexpr (std::is_same<T,std::complex<double>>)
+				result.set([&distribution, &R]() { return std::complex<double>(distribution(R),distribution(R)); });
+			return result;
 		}
 
 		template<typename T,typename EdgeKey=stdEdgeKey>

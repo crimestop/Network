@@ -19,12 +19,12 @@ namespace net{
 		operator int() const;
 	};
 
-	rational::rational(const int & num){
+	inline rational::rational(const int & num){
 		numerator=num;
 		denominator=1;
 	}
 
-	rational::rational(const int & num,const int & denom){
+	inline rational::rational(const int & num,const int & denom){
 		int gcd_val;
 		if(num==0 && denom==0){
 			numerator=0;
@@ -53,61 +53,77 @@ namespace net{
 		}
 	}
 
-	rational::operator double() const{
+	inline rational::operator double() const{
 		return double(numerator)/double(denominator);
 	}
-	rational::operator int() const{
+	inline rational::operator int() const{
 		return numerator/denominator;
 	}
 
-	bool operator<(const rational & a,const rational & b){
+	inline bool operator<(const rational & a,const rational & b){
 		return a.numerator*b.denominator<a.denominator*b.numerator;
 	}
 
-	bool operator>(const rational & a,const rational & b){
+	inline bool operator<=(const rational & a,const rational & b){
+		return a.numerator*b.denominator<=a.denominator*b.numerator;
+	}
+
+	inline bool operator>(const rational & a,const rational & b){
 		return a.numerator*b.denominator>a.denominator*b.numerator;
 	}
 
-	std::ostream & operator<<(std::ostream & os,const rational & a){
+	inline bool operator>=(const rational & a,const rational & b){
+		return a.numerator*b.denominator>=a.denominator*b.numerator;
+	}
+
+	inline bool operator==(const rational & a,const rational & b){
+		return a.numerator*b.denominator==a.denominator*b.numerator;
+	}
+
+	inline bool operator!=(const rational & a,const rational & b){
+		return a.numerator*b.denominator!=a.denominator*b.numerator;
+	}
+
+	inline std::ostream & operator<<(std::ostream & os,const rational & a){
 		return os<<a.numerator<<'/'<<a.denominator;
 	}
 
-	rational operator+(const rational & a,const rational & b){
+	inline rational operator+(const rational & a,const rational & b){
 		return rational(a.numerator*b.denominator+a.denominator*b.numerator,a.denominator*b.denominator);
 	}
 
-	rational operator-(const rational & a,const rational & b){
+	inline rational operator-(const rational & a,const rational & b){
 		return rational(a.numerator*b.denominator-a.denominator*b.numerator,a.denominator*b.denominator);
 	}
 
-	rational operator-(const rational & a){
+	inline rational operator-(const rational & a){
 		return rational(-a.numerator,a.denominator);
 	}
 
-	rational operator*(const rational & a,const rational & b){
+	inline rational operator*(const rational & a,const rational & b){
 		return rational(a.numerator*b.numerator,a.denominator*b.denominator);
 	}
 
-	rational operator/(const rational & a,const rational & b){
+	inline rational operator/(const rational & a,const rational & b){
 		return rational(a.numerator*b.denominator,a.denominator*b.numerator);
 	}
 
-	rational & operator+=(rational & a,const rational & b){
+	inline rational & operator+=(rational & a,const rational & b){
 		a = a+b;
 		return a;
 	}
 
-	rational & operator-=(rational & a,const rational & b){
+	inline rational & operator-=(rational & a,const rational & b){
 		a = a-b;
 		return a;
 	}
 
-	rational & operator*=(rational & a,const rational & b){
+	inline rational & operator*=(rational & a,const rational & b){
 		a = a*b;
 		return a;
 	}
 
-	rational & operator/=(rational & a,const rational & b){
+	inline rational & operator/=(rational & a,const rational & b){
 		a = a/b;
 		return a;
 	}

@@ -1,0 +1,6 @@
+[submodule "third_party/TAT"]
+	path = third_party/TAT
+	url = https://github.com/hzhangxyz/TAT.git
+[submodule "third_party/json"]
+	path = third_party/json
+	url = https://github.com/nlohmann/json

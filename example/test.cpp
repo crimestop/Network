@@ -121,7 +121,7 @@ int main(){
 
 
 
-	for(int i=4;i<5;++i){
+	for(int i=4;i<4;++i){
 		eg.cut_part=i;
 		for(int j=0;j<4;++j){
 			eg.uneven=0.2*(4-j);
