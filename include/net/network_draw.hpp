@@ -43,9 +43,8 @@ std::string base64_encode(const std::string &in);
 		const std::vector<std::set<NodeKey,typename Trait::nodekey_less>> & contains,const bool label_bond){
 
 		std::ofstream fig_file(filename, std::ios::binary);
-		if(nodes.size()>0){
+		if(this->size()>0)
 			fig_file<<render(gviz(contains,label_bond),"sfdp");
-		}
 
 	}
 
@@ -76,7 +75,7 @@ std::string base64_encode(const std::string &in);
 	void network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::draw(const std::string & title,const std::vector<std::set<NodeKey,typename Trait::nodekey_less>> & contains,const bool label_bond){
 
 		consistency();
-		if(nodes.size()==0){
+		if(this->size()==0){
 			std::cout<<"-----------------------------------------------\n";
 			std::cout<<"empty lattice\n";
 			std::cout<<"-----------------------------------------------\n";

@@ -50,7 +50,7 @@ int main(){
 		for (int j=0;j<4;++j){
 			//std::cout<<i<<j<<"\n";
 			lat2.add("ten"+str(i)+"_"+str(j));
-			lat2.set_val("ten"+str(i)+"_"+str(j),1);
+			lat2["ten"+str(i)+"_"+str(j)].val=1;
 		}
 	}
 	for(int i=0;i<4;++i){
@@ -100,7 +100,7 @@ int main(){
 	for(int i=0;i<4;++i){
 		for (int j=0;j<4;++j){
 			//std::cout<<i<<"----"<<j<<"\n";
-			if (lat2.exist("ten"+str(i)+"_"+str(j))){
+			if (lat2.contains("ten"+str(i)+"_"+str(j))){
 				tnt.absorb<net::no_absorb,net::tensor::tensor_contract>("ten"+str(i)+"_"+str(j));
 				//tnt.draw("test",true);
 			}	

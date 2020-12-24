@@ -9,6 +9,7 @@
 #include <random>
 #include <variant>
 #include <functional>
+#include <type_traits>
 
 namespace net{
 
@@ -38,13 +39,13 @@ namespace net{
 			const unsigned int D,const unsigned int dphy,std::default_random_engine & R){
 
 			auto distribution = std::uniform_real_distribution<double>(-1.,1.);
-			const std::vector<EdgeKey> inds=str_inds
+			const std::vector<EdgeKey> inds=str_inds;
 			std::vector<unsigned int> dims(str_inds.size(),D);
 			dims.push_back(dphy);
 			Tensor<T,EdgeKey> result(str_inds,{dims.begin(), dims.end()});
-			if constexpr (std::is_same<T,double>)
+			if constexpr (std::is_same_v<T,double>)
 				result.set([&distribution, &R]() { return distribution(R); });
-			else if constexpr (std::is_same<T,std::complex<double>>)
+			else if constexpr (std::is_same_v<T,std::complex<double>>)
 				result.set([&distribution, &R]() { return std::complex<double>(distribution(R),distribution(R)); });
 			return result;
 		}
@@ -66,17 +67,17 @@ namespace net{
 		}
 
 		struct tensor_absorb{
-			template <typename T,typename EdgeKey=stdEdgeKey>
-			static Tensor<T,EdgeKey> run(const Tensor<T,EdgeKey>& ten1,const Tensor<T,EdgeKey>& ten2,const EdgeKey & ind){
+			template <typename TensorType,typename EdgeKey>
+			static TensorType run(const TensorType& ten1,const TensorType& ten2,const EdgeKey & ind){
 				return ten1.contract(ten2,{{ind,ten2.names[0]}}).edge_rename({{ten2.names[1],ind}});
 			}
 		};
 
 		struct tensor_contract{
-			template <typename T,typename EdgeKey=stdEdgeKey>
-			static Tensor<T,EdgeKey> run(const Tensor<T,EdgeKey>& ten1,const Tensor<T,EdgeKey>& ten2,
-				const std::set<std::pair<EdgeKey,EdgeKey>> & inds){
-				return Tensor<T,EdgeKey>::contract(ten1,ten2,{inds.begin(),inds.end()});
+			template <typename TensorType,typename IndType>
+			static TensorType run(const TensorType& ten1,const TensorType& ten2,
+				const IndType & inds){
+				return ten1.contract(ten2,{inds.begin(),inds.end()});
 			}
 		};
 

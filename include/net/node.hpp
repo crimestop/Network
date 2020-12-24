@@ -6,6 +6,7 @@
 #include <vector>
 #include "error.hpp"
 #include "network.hpp"
+#include "traits.hpp"
 
 namespace net{
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>

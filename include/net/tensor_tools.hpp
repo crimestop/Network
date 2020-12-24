@@ -22,7 +22,7 @@ namespace net{
 		int get_size(TnType ten){
 			return ten.const_block().size();
 		}
-		template<typename T,typename EdgeKey=stdEdgeKey>
+		template<typename TnType>
 		int get_rank(TnType ten){
 			return ten.names.size();
 		}

@@ -38,7 +38,7 @@ int main(){
 		for (int j=0;j<L2;++j){
 			//std::cout<<i<<j<<"\n";
 			lat2.add("ten"+str(i)+"_"+str(j));
-			lat2.set_val("ten"+str(i)+"_"+str(j),1);
+			lat2["ten"+str(i)+"_"+str(j)].val=1;
 		}
 	}
 	for(int i=0;i<L1;++i){

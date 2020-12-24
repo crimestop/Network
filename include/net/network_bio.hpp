@@ -38,8 +38,8 @@ namespace net{
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	std::ostream & operator<(std::ostream & os,const network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait> & n){
-		output_bin(os,n.nodes.size());
-		for(auto & i : n.nodes){
+		output_bin(os,n.size());
+		for(auto & i : n){
 			Trait::nodekey_write_bin(os,i.first);
 			output_node_bin(os,i.second);
 		}
@@ -70,13 +70,13 @@ namespace net{
 		unsigned int len;
 		input_bin(is,len);
 		NodeKey a;
-		n.nodes.clear();
+		n.clear();
 		for (int i=0;i<len;++i){
 			Trait::nodekey_read_bin(is,a);
-			input_node_bin(is,n.nodes[a]);
+			input_node_bin(is,n[a]);
 		}
-		for(auto & s:n.nodes)
-			s.relink(n.nodes);
+		for(auto & s:n)
+			s.relink(n);
 		return is;
 	}
 

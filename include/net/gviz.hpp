@@ -29,7 +29,7 @@ namespace net{
 		dot_content<<"  fontname="<<gviz_theme["global_fontname"]<<"\n";
 		dot_content<<"  label = \""<<title<<"\"\n";
 		
-		for(auto& s_it:nodes){
+		for(auto& s_it:*this){
 			auto & nodekey1=s_it.first;
 			grp="def";
 			for(int i=0;i<groups.size();++i)
@@ -45,7 +45,7 @@ namespace net{
 		dot_content<<"subgraph bond {\n";
 		dot_content<<"  edge[dir=none]\n";
 
-		for(auto & s_it:nodes){
+		for(auto & s_it:*this){
 			auto & nodekey1=s_it.first;
 			for(auto & b_it:s_it.second.edges){
 				auto & ind1=b_it.first;
@@ -96,7 +96,7 @@ namespace net{
 				", fontname="<<gviz_theme["group"+grp].value("node_fontname",gviz_theme["node_fontname"])<<", pos=\""<<std::to_string(3*i)<<","<<std::to_string(-i/6)<<"!\"]\n";
 		for(auto & g:groups){
 			for (auto & p:g){
-				if(nodes.count(p)>0){
+				if(this->count(p)>0){
 					++i;
 					grp=std::to_string(i-1);
 					dot_content<<"  node"<<std::to_string(i)<<

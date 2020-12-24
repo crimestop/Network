@@ -78,7 +78,7 @@ namespace net{
 		network<std::tuple<NodeVal,int,net::rational>,int,NodeKey,EdgeKey,Trait>  temp;
 		temp = lat.template fmap<decltype(temp)>([](const NodeVal & ten){return std::make_tuple(ten,0,net::rational(0,1));},[](const int & m){return m;});
 		std::string final_site=inner_contract<lift_contract<contract_type>,lift_absorb<absorb_type>>(temp,part);
-		return std::get<0>(temp[final_site]);
+		return std::get<0>(temp[final_site].val);
 	}
 	template <typename contract_type,typename absorb_type,typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	NodeVal Engine::contract_qbb(network<NodeVal,int,NodeKey,EdgeKey,Trait> & lat, const std::set<NodeKey,typename Trait::nodekey_less> & part){
@@ -86,7 +86,7 @@ namespace net{
 		network<std::tuple<NodeVal,int,net::rational>,int,NodeKey,EdgeKey,Trait>  temp;
 		temp = lat.template fmap<decltype(temp)>([](const NodeVal & ten){return std::make_tuple(ten,0,net::rational(0,1));},[](const int & m){return m;});
 		std::string final_site=contract_quickbb<lift_contract<contract_type>,lift_absorb<absorb_type>>(temp,part);
-		return std::get<0>(temp[final_site]);
+		return std::get<0>(temp[final_site].val);
 	}
 
 	template <typename contract_type,typename absorb_type,typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
@@ -147,11 +147,11 @@ namespace net{
 		NodeItrType least_contract1,least_contract2,nb_itr;
 
 		for(auto & p:part){
-			auto site_it=lat.nodes.find(p);
-			std::get<1>(site_it->second.val)=calc_weight(site_it,lat.nodes,KeySet());
+			auto site_it=lat.find(p);
+			std::get<1>(site_it->second.val)=calc_weight(site_it,lat,KeySet());
 		}
 		for (auto & p:part){
-			auto site_it=lat.nodes.find(p);
+			auto site_it=lat.find(p);
 			std::tie(count,nb_itr) = search_quick<NodeItrType,KeySet,EdgeKey,Trait>(site_it,part);
 			if(least_count<0 || count<least_count){
 				least_count=count;
@@ -190,7 +190,7 @@ namespace net{
 		const std::set<NodeKey,typename Trait::nodekey_less> & includes){
 
 		for(auto & i :includes){
-			auto & inode=lat.nodes[i];
+			auto & inode=lat[i];
 			std::map<NodeKey,std::pair<EdgeKey,EdgeKey>,typename Trait::nodekey_less> nbkey2ind;
 			for (auto iter =inode.edges.begin();iter!=inode.edges.end();){
 				//std::cout<<"combine "<<i<<' '<<iter->first<<' '<<iter->second.nbkey<<'\n';
@@ -229,7 +229,7 @@ namespace net{
 
 		for(int i=0;i<subparts.size();++i)
 			for(auto & s:subparts[i])
-				std::get<1>(lat[s])=i;
+				std::get<1>(lat[s].val)=i;
 
 		std::set<NodeKey,typename Trait::nodekey_less> treated,newsubpart;
 		std::vector<std::set<NodeKey,typename Trait::nodekey_less>> newsubparts;
@@ -237,7 +237,7 @@ namespace net{
 			for(auto & p:part)
 				if(treated.count(p)==0){
 					newsubparts.push_back({});
-					get_component(lat.nodes[p],p,part,treated,newsubparts.back());
+					get_component(lat[p],p,part,treated,newsubparts.back());
 				}
 
 		return newsubparts;
@@ -252,7 +252,7 @@ namespace net{
 		KeySet coarse_part=part;
 		network<KeySet,int,NodeKey,EdgeKey> fakelat;
 		fakelat=lat.template fmap<decltype(fakelat)>([](const NodeVal & tp){return KeySet();},[](const int & m){return m;});
-		for (auto & n:fakelat.nodes)
+		for (auto & n:fakelat)
 			n.second.val.insert(n.first);
 
 		//粗粒化
@@ -266,7 +266,7 @@ namespace net{
 																				//we may replace std::greater
 			// add bonds to ordered_bond
 			for(auto & p:coarse_part){
-				auto & this_site=fakelat.nodes[p];
+				auto & this_site=fakelat[p];
 				for(auto &e:this_site.edges){
 					if(coarse_part.count(e.second.nbkey)>0){
 						ordered_bond.insert({e.second.val,p,e.second.nbkey});
@@ -335,7 +335,7 @@ namespace net{
 					break;
 				decide2exit=false;
 				for(auto & nb:ordered_nb){
-					if(max_weight_site_itr->second.val.size()+fakelat[nb.second].size()<=size_limit){
+					if(max_weight_site_itr->second.val.size()+fakelat[nb.second].val.size()<=size_limit){
 						fakelat.template absorb<no_absorb,kset_contract>(max_weight_site_itr->first,nb.second);
 						treated_sites.insert(nb.second);
 					}else{
@@ -371,7 +371,7 @@ namespace net{
 				//std::cout<<"there \n"; 
 				//std::cout<<test_node.edges.size()<<"\n"; 
 				//std::cout<<"there \n"; 
-				for(auto & e:fakelat.nodes.at(s).edges){
+				for(auto & e:fakelat.at(s).edges){
 					//std::cout<<"here2 "<<e.second.nbkey<<coarse_part.count(e.second.nbkey)<<final_sites.count(e.second.nbkey)<<'\n'; 
 					if(coarse_part.count(e.second.nbkey)>0 &&final_sites.count(e.second.nbkey)==0){
 						treated_sites.insert(e.second.nbkey);
@@ -394,7 +394,7 @@ namespace net{
 		//释放
 		std::vector<KeySet> subparts;
 		for(auto & s:final_sites)
-			subparts.push_back(fakelat[s]);
+			subparts.push_back(fakelat[s].val);
 
 		// for(auto & i: std::get<0>(lat["ten0_1"])->val ) std::cout<<i<<" **************4\n";
 		// 	std::cout<<"finish **************4\n";
@@ -452,7 +452,7 @@ namespace net{
 		std::vector<int> part_size(subparts.size(),0);
 		for(int i=0;i<subparts.size();++i){
 			for(auto & s:subparts[i])
-				std::get<1>(lat[s])=i;
+				std::get<1>(lat[s].val)=i;
 			part_size[i]=subparts[i].size();
 		}
 
@@ -462,7 +462,7 @@ namespace net{
 		double tot_gain=1.;
 		int this_part,nb_part;
 		for(auto & p:part){
-			auto & n=lat.nodes[p];
+			auto & n=lat[p];
 
 			if(calc_gain(cut_part,gain,n,this_part,nb_part,part)){
 				gain_rec[{gain,p}]={this_part,nb_part};
@@ -496,7 +496,7 @@ namespace net{
 					part_size[g_rec->second.first]--;
 					part_size[g_rec->second.second]++;
 					auto this_name=g_rec->first.second;
-					auto & this_node= lat.nodes[this_name];
+					auto & this_node= lat[this_name];
 					std::get<1>(this_node.val)=g_rec->second.second;
 					subparts[g_rec->second.first].erase(g_rec->first.second);
 					subparts[g_rec->second.second].insert(g_rec->first.second);
@@ -566,7 +566,7 @@ namespace net{
 		std::vector<int> part_size(subparts.size(),0);
 		for(int i=0;i<subparts.size();++i){
 			for(auto & s:subparts[i])
-				std::get<1>(lat[s])=i;
+				std::get<1>(lat[s].val)=i;
 			part_size[i]=subparts[i].size();
 		}
 
@@ -581,7 +581,7 @@ namespace net{
 
 		std::map<NodeKey,std::vector<int>,typename Trait::nodekey_less> weights;
 		for(auto & p:part)
-			calc_weight(cut_part,lat.nodes[p],weights[p],part);
+			calc_weight(cut_part,lat[p],weights[p],part);
 
 		double cumu_gain=1,max_gain=1,further_gain;
 		int i=0;
@@ -589,7 +589,7 @@ namespace net{
 		while(i<refine_sweep && j<100*refine_sweep){
 			j++;
 			auto this_site=part_vec[site_dist(rand)];
-			auto & this_node=lat.nodes[this_site];
+			auto & this_node=lat[this_site];
 			auto & this_weight=weights[this_site];
 			int this_part=std::get<1>(this_node.val);
 			int next_part=part_dist(rand);
@@ -607,7 +607,7 @@ namespace net{
 					subparts[next_part].insert(this_site);
 					calc_weight(cut_part,this_node,this_weight,part);
 					for(auto & eg:this_node.edges)
-						calc_weight(cut_part,lat.nodes[eg.second.nbkey],weights[eg.second.nbkey],part);
+						calc_weight(cut_part,lat[eg.second.nbkey],weights[eg.second.nbkey],part);
 
 					temp_subparts=subparts;
 					further_gain=refine(lat,part,temp_subparts);
@@ -740,7 +740,7 @@ namespace net{
 				return  net::tensor::get_dim(nodev1,ind1);});
 
 			std::set<std::string> includes;
-			for(auto & n:lat.nodes)
+			for(auto & n:lat)
 				includes.insert(n.first);
 			return eg.contract<net::Tree_combine<TreeVal<typename NetType::NodeKeySetType>>,net::Tree_act<TreeVal<typename NetType::NodeKeySetType>>>(temp,includes);
 		}
@@ -760,7 +760,7 @@ namespace net{
 				return  net::tensor::get_dim(nodev1,ind1);});
 
 			std::set<std::string> includes;
-			for(auto & n:lat.nodes)
+			for(auto & n:lat)
 				includes.insert(n.first);
 			return eg.contract_qbb<net::Tree_combine<TreeVal<typename NetType::NodeKeySetType>>,net::Tree_act<TreeVal<typename NetType::NodeKeySetType>>>(temp,includes);
 		}

@@ -20,7 +20,7 @@ namespace net{
 			single_less comp;
 			return comp(a.first,b.first) || (!comp(b.first,a.first) && comp(a.second,b.second));
 		}
-	}
+	};
 
 	template<typename EdgeKey>
 	struct base_edgekey_traits{
@@ -30,6 +30,7 @@ namespace net{
 			return a.str();
 		}
 		using edgekey_less=std::less<EdgeKey>;
+		using edge2key_less=std::less<std::pair<EdgeKey,EdgeKey>>; // required by TAT
 		static std::ostream & edgekey_write_text(std::ostream & os, const EdgeKey & edgekey){
 			return default_write_text(os,edgekey);
 		}
