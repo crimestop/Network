@@ -27,6 +27,19 @@ namespace net{
 			return ten.names.size();
 		}
 
+		template<typename T>
+		std::set<std::string> inds_start_with(const TAT::Tensor<T>& ten,const std::string & head){
+			std::set<std::string> res;
+			//std::cout<<"test inds_start_with\n";
+			//std::cout<<head<<'\n';
+			for(auto & s: ten.names)
+				if(s.compare(0, head.size(),head)==0){
+					//std::cout<<s<<'\n';
+					res.insert(s);
+				}
+			return res;
+		}
+
 		template<typename TnType,typename EdgeKey>
 		int get_dim(TnType ten, EdgeKey s){
 			return ten.core->edges[ten.name_to_index[s]].map[TAT::NoSymmetry()];

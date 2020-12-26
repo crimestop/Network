@@ -32,7 +32,7 @@ namespace net{
 	template<typename contract_type>
 	struct Tree_combine{
 		template<typename Data,typename NoUse>
-		static tree<Data>* run( tree<Data>* const & a,tree<Data>* const & b,const NoUse & c){
+		tree<Data>* operator()( tree<Data>* const & a,tree<Data>* const & b,const NoUse & c) const{
 			return new tree<Data>(contract_type::contract(a->val,b->val),a,b);
 		}
 	};
@@ -40,7 +40,7 @@ namespace net{
 	template<typename absorb_type>
 	struct Tree_act{
 		template<typename Data,typename Data2,typename NoUse>
-		static tree<Data>* run( tree<Data>* const & a, const Data2 & b,const NoUse & c){
+		tree<Data>* operator()( tree<Data>* const & a, const Data2 & b,const NoUse & c) const{
 			a->val=absorb_type::absorb(a->val,b);
 			return a;
 		}

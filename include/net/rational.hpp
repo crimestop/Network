@@ -15,8 +15,8 @@ namespace net{
 		rational(const rational&)=default;
 		~rational()=default;
 
-		operator double() const;
-		operator int() const;
+		double to_double() const;
+		int to_int() const;
 	};
 
 	inline rational::rational(const int & num){
@@ -53,10 +53,10 @@ namespace net{
 		}
 	}
 
-	inline rational::operator double() const{
+	inline double rational::to_double() const{
 		return double(numerator)/double(denominator);
 	}
-	inline rational::operator int() const{
+	inline int rational::to_int() const{
 		return numerator/denominator;
 	}
 

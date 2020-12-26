@@ -158,11 +158,11 @@ int main(){
 
 
 	start_time=std::chrono::steady_clock::now();
-	net::tensor::Tensor<double> ten2 = lat2.contract_tree<net::no_absorb,net::tensor::tensor_contract>(ctree2);
+	net::tensor::Tensor<double> ten2 = lat2.contract_tree(ctree2,net::no_absorb(),net::tensor::contract());
 	cumu_time=std::chrono::steady_clock::now()-start_time;
 	std::cout<<"quickbb "<<cumu_time.count()<<'\n';
 	start_time=std::chrono::steady_clock::now();
-	net::tensor::Tensor<double> ten3 = lat2.contract<net::no_absorb,net::tensor::tensor_contract>();
+	net::tensor::Tensor<double> ten3 = lat2.contract(net::no_absorb(),net::tensor::contract());
 	cumu_time=std::chrono::steady_clock::now()-start_time;
 	std::cout<<"naive "<<cumu_time.count()<<'\n';
 

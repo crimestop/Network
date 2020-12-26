@@ -78,7 +78,7 @@ int main(){
 
 	lat2.init_nodes(std::bind(net::tensor::init_node_rand<net::stdEdgeKey>, _1,8,-1.,1.,std::ref(random_engine)));
 
-	lat2.absorb<net::no_absorb,net::tensor::tensor_contract>("ten1_1","ten1_2");
+	lat2.absorb("ten1_1","ten1_2",net::no_absorb(),net::tensor::contract());
 	benchmark.stop("square");
 
 
@@ -89,7 +89,7 @@ int main(){
 
 
 	benchmark.start("contract");
-	double tot = lat2.contract<net::no_absorb,net::tensor::tensor_contract>();
+	double tot = lat2.contract(net::no_absorb(),net::tensor::contract());
 	benchmark.stop("contract");
 	//std::cout<<"here2\n";
 
@@ -101,7 +101,7 @@ int main(){
 		for (int j=0;j<4;++j){
 			//std::cout<<i<<"----"<<j<<"\n";
 			if (lat2.contains("ten"+str(i)+"_"+str(j))){
-				tnt.absorb<net::no_absorb,net::tensor::tensor_contract>("ten"+str(i)+"_"+str(j));
+				tnt.absorb("ten"+str(i)+"_"+str(j),net::no_absorb(),net::tensor::contract());
 				//tnt.draw("test",true);
 			}	
 		}

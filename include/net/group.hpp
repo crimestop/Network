@@ -35,7 +35,7 @@ namespace net{
 
 		void belong(network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait> &);
 		template <typename absorb_type, typename contract_type>
-		void absorb(const NodeKey &);
+		void absorb(const NodeKey &,const absorb_type &,const contract_type &);
 		void draw(const bool);
 		const NodeVal& get_val();
 
@@ -61,18 +61,19 @@ namespace net{
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey,typename Trait>
 	template <typename absorb_type, typename contract_type>
-	void group<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::absorb(const NodeKey & key){
-		net->template tn_contract1<absorb_type,contract_type>(key,contains,val);
+	void group<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::absorb(const NodeKey & key,const absorb_type & absorb_fun,const contract_type & contract_fun){
+		net->template tn_contract1(key,contains,val,absorb_fun,contract_fun);
 		contains.insert(key);
 	}
 
 	template <typename absorb_type, typename contract_type,typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey,typename Trait>
-	group<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait> contract(group<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait> & G1, group<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait> & G2){
+	group<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait> contract(group<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait> & G1, group<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait> & G2,
+		const absorb_type & absorb_fun,const contract_type & contract_fun){
 		group<NodeVal,EdgeVal,NodeKey,EdgeKey> G3;
 		G3.net=G1.net;
 		G3.contains=G1.contains;
 		G3.insert(G2.begin(),G2.end());
-		G3.ten=G3.net->template tn_contract2<absorb_type,contract_type>(G1.contains,G1.val,G2.contains,G2.val);
+		G3.ten=G3.net->template tn_contract2(G1.contains,G1.val,G2.contains,G2.val,absorb_fun,contract_fun);
 	}
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey,typename Trait>

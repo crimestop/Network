@@ -103,9 +103,9 @@ namespace net{
 		void reset_nbkey_of_nb(const NodeKey &);
 
 		template<typename absorb_type,typename contract_type>
-		void absorb_nb(const NodeKey &,const NodeVal &);
+		void absorb_nb(const NodeKey &,const NodeVal &,const absorb_type &,const contract_type &);
 		template <typename absorb_type,typename Condition>
-		void harmless_absorb_nb(NodeVal &,std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> &,Condition&&) const;
+		void harmless_absorb_nb(NodeVal &,std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> &,const absorb_type &,Condition&&) const;
 
 		void transfer_edge(const typename network<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::IterNode &,bool );
 		template <typename Condition>
@@ -189,7 +189,8 @@ namespace net{
 	*/
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	template <typename absorb_type,typename contract_type>
-	void node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::absorb_nb(const NodeKey & nbkey,const NodeVal & nbval){
+	void node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::absorb_nb(const NodeKey & nbkey,const NodeVal & nbval,
+		const absorb_type & absorb_fun,const contract_type & contract_fun){
 
 		std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> ind_pairs;
 
@@ -197,13 +198,13 @@ namespace net{
 		for(auto iter=edges.begin(); iter != edges.end(); ) {
 			if (iter->second.nbkey==nbkey) {
 				ind_pairs.insert(std::make_pair(iter->first,iter->second.nbind));
-				val=absorb_type::run(val,iter->second.val,iter->first);
+				val=absorb_fun(val,iter->second.val,iter->first);
 				iter=edges.erase(iter);
 			} else {
 				++iter;
 			}
 		}
-		val=contract_type::run(val,nbval,ind_pairs);
+		val=contract_fun(val,nbval,ind_pairs);
 	}
 
 	/*
@@ -213,7 +214,7 @@ namespace net{
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	template <typename absorb_type,typename Condition>
 	void node<NodeVal,EdgeVal,NodeKey,EdgeKey,Trait>::harmless_absorb_nb(NodeVal & thisval,
-		std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> & ind_pairs,Condition&& cond) const{
+		std::set<std::pair<EdgeKey,EdgeKey>,typename Trait::edge2key_less> & ind_pairs,const absorb_type & absorb_fun,Condition&& cond) const{
 
 
 		for(auto & b:edges) {
@@ -221,7 +222,7 @@ namespace net{
 			if (cond(b)) {
 				//std::cout<<"edgehere"<<b.first<<' '<<b.second.nbkey<<'\n';
 				ind_pairs.insert(std::make_pair(b.first,b.second.nbind));
-				thisval=absorb_type::run(thisval,b.second.val,b.first);
+				thisval=absorb_fun(thisval,b.second.val,b.first);
 			}
 		}
 	}

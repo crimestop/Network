@@ -34,18 +34,22 @@ namespace net{
 			return result.set([&distribution, &R]() { return distribution(R); });
 		}
 
-		template <typename T,typename EdgeKey=stdEdgeKey>
-		Tensor<T,EdgeKey> init_node_rand_phy(const std::vector<EdgeKey> & str_inds,
+		template <typename NetType>
+		typename NetType::NodeValType init_node_rand_phy(const typename NetType::IterNode & itr,
 			const unsigned int D,const unsigned int dphy,std::default_random_engine & R){
 
 			auto distribution = std::uniform_real_distribution<double>(-1.,1.);
-			const std::vector<EdgeKey> inds=str_inds;
-			std::vector<unsigned int> dims(str_inds.size(),D);
+			std::vector<typename NetType::EdgeKeyType> inds;
+			for (auto& b:itr->second.edges){
+				inds.push_back(b.first);
+			}
+			std::vector<unsigned int> dims(inds.size(),D);
+			inds.push_back(itr->first+".phy");
 			dims.push_back(dphy);
-			Tensor<T,EdgeKey> result(str_inds,{dims.begin(), dims.end()});
-			if constexpr (std::is_same_v<T,double>)
+			typename NetType::NodeValType result(inds,{dims.begin(), dims.end()});
+			if constexpr (std::is_same_v<typename NetType::NodeValType::scalar_t,double>)
 				result.set([&distribution, &R]() { return distribution(R); });
-			else if constexpr (std::is_same_v<T,std::complex<double>>)
+			else if constexpr (std::is_same_v<typename NetType::NodeValType::scalar_t,std::complex<double>>)
 				result.set([&distribution, &R]() { return std::complex<double>(distribution(R),distribution(R)); });
 			return result;
 		}
@@ -57,26 +61,96 @@ namespace net{
 			for(int i=0;i<D;++i){
 				result.block()[i*(D+1)]=1.;
 			}
+			return result;
 		}
 
-		template <typename T,typename EdgeKey=stdEdgeKey,typename V=Tensor<T,EdgeKey>>
-		void default_dec(const Tensor<T,EdgeKey>& ten1,Tensor<T,EdgeKey>& ten2,Tensor<T,EdgeKey>& ten3,
-			const std::set<EdgeKey> & inds,const EdgeKey & ind1,const EdgeKey & ind2,V& env){
-			ten2=ten1;
-			ten3=ten1;
-		}
+		struct default_dec{
+			template <typename TensorType,typename EdgeKey,typename EdgeKeySet,typename EdgeVal>
+			void operator()(const TensorType& ten1,TensorType& ten2,TensorType& ten3,
+				const EdgeKeySet & inds,const EdgeKey & ind1,const EdgeKey & ind2,EdgeVal& env) const{
+				ten2=ten1;
+				ten3=ten1;
+			}
+		};
 
-		struct tensor_absorb{
+		struct qr{
+			template <typename TensorType,typename EdgeKey,typename EdgeKeySet,typename EdgeVal>
+			void operator()(const TensorType& ten1,TensorType& ten2,TensorType& ten3,
+				const EdgeKeySet & inds,const EdgeKey & ind1,const EdgeKey & ind2,EdgeVal& env) const{
+				auto qr_res=ten1.qr('R',inds,ind1,ind2);
+				ten2=qr_res.Q;
+				ten3=qr_res.R;
+			}
+		};
+
+		struct svd{
+			int Dc= -1;
+			svd()=default;
+			svd(int d):Dc(d){};
+			template <typename TensorType,typename EdgeKey,typename EdgeKeySet,typename EdgeVal>
+			void operator()(const TensorType& ten1,TensorType& ten2,TensorType& ten3,
+				const EdgeKeySet & inds,const EdgeKey & ind1,const EdgeKey & ind2,EdgeVal& env) const{
+				auto svd_res=ten1.svd(inds,ind2,ind1,Dc);
+				ten3=svd_res.U;
+				ten2=svd_res.V;
+				env=svd_res.S;
+			}
+		};
+
+		struct svd2{
+			int Dc= -1;
+			svd2()=default;
+			svd2(int d):Dc(d){};
+			template <typename TensorType,typename EdgeKey,typename EdgeKeySet,typename EdgeVal>
+			void operator()(const TensorType& ten1,TensorType& ten2,TensorType& ten3,
+				const EdgeKeySet & inds,const EdgeKey & ind1,const EdgeKey & ind2,EdgeVal& env) const{
+				auto svd_res=ten1.svd(inds,ind2,ind1,Dc,ind2,ind1);
+				ten3=svd_res.U;
+				ten2=svd_res.V;
+				// std::cout<<"<this test\n";
+				// std::cout<<"ten1\n";
+				// diminfo(ten1,std::cout);
+				// std::cout<<"inds\n";
+				// for(auto a: inds) std::cout<<a<<'\n';
+				// std::cout<<"ind1\n";
+				// std::cout<<ind1<<'\n';
+				// std::cout<<"ind2\n";
+				// std::cout<<ind2<<'\n';
+				//std::cout<<"ten3\n";
+				// diminfo(ten3,std::cout);
+				//std::cout<<"ten2\n";
+				// diminfo(ten2,std::cout);
+				env=svd_res.S;
+				env=env/env.template norm<-1>();
+				// std::cout<<'\n';
+				// std::cout<<env<<"\n";
+				// std::cout<<ten2<<"\n";
+				// std::cout<<ten3<<"\n";
+				ten2=ten2.contract(env,{{ind1,ind2}});
+				ten3=ten3.contract(env,{{ind2,ind1}});
+
+				// std::cout<<ten2<<"\n";
+				// std::cout<<ten3<<"\n";
+				int D=get_dim(env,0);
+				for(int i = 0 ; i < D*D ; i += D+1)
+					env.block()[i]=1./env.block()[i];
+				// std::cout<<env<<"\n";
+				// std::cout<<"this test>\n";
+
+			}
+		};
+
+		struct absorb{
 			template <typename TensorType,typename EdgeKey>
-			static TensorType run(const TensorType& ten1,const TensorType& ten2,const EdgeKey & ind){
+			TensorType operator()(const TensorType& ten1,const TensorType& ten2,const EdgeKey & ind) const{
 				return ten1.contract(ten2,{{ind,ten2.names[0]}}).edge_rename({{ten2.names[1],ind}});
 			}
 		};
 
-		struct tensor_contract{
+		struct contract{
 			template <typename TensorType,typename IndType>
-			static TensorType run(const TensorType& ten1,const TensorType& ten2,
-				const IndType & inds){
+			TensorType operator()(const TensorType& ten1,const TensorType& ten2,
+				const IndType & inds) const{
 				return ten1.contract(ten2,{inds.begin(),inds.end()});
 			}
 		};
@@ -132,8 +206,8 @@ namespace net{
 		typename Network::NodeValType contract_quickbb(const Network & n){
 			typename Network::NodeValType result;
 			Engine eg;
-			auto ctree = net::get_contract_tree_qbb<net::keyset>(n,eg);
-			result=n.template contract_tree<no_absorb,tensor::tensor_contract>(ctree);
+			auto ctree = get_contract_tree_qbb<keyset>(n,eg);
+			result=n.template contract_tree(ctree,no_absorb(),contract());
 			delete ctree;
 			return result;
 		}

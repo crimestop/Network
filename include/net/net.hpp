@@ -6,6 +6,7 @@
 #include "network_bio.hpp"
 #include "network_io.hpp"
 #include "group.hpp"
+#include "rational.hpp"
 
 // gcc main.cpp -DLALAL=ITERM2
 

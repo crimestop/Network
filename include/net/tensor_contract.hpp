@@ -16,9 +16,11 @@ namespace net{
 	class Engine{
 	public:
 		template <typename contract_type,typename absorb_type,typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
-		NodeVal contract(network<NodeVal,int,NodeKey,EdgeKey,Trait> &, const std::set<NodeKey,typename Trait::nodekey_less> &);
+		NodeVal contract(network<NodeVal,int,NodeKey,EdgeKey,Trait> &, const std::set<NodeKey,typename Trait::nodekey_less> &,
+			const absorb_type &,const contract_type &);
 		template <typename contract_type,typename absorb_type,typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
-		NodeVal contract_qbb(network<NodeVal,int,NodeKey,EdgeKey,Trait> &, const std::set<NodeKey,typename Trait::nodekey_less> &);
+		NodeVal contract_qbb(network<NodeVal,int,NodeKey,EdgeKey,Trait> &, const std::set<NodeKey,typename Trait::nodekey_less> &,
+			const absorb_type &,const contract_type &);
 
 		int coarse_grain_to=500;
 		int cut_part=8;
@@ -28,10 +30,12 @@ namespace net{
 		std::default_random_engine rand=std::default_random_engine(std::random_device()());
 	private:
 		template <typename contract_type,typename absorb_type,typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
-		NodeKey inner_contract(network<NodeVal,int,NodeKey,EdgeKey,Trait> &, const std::set<NodeKey,typename Trait::nodekey_less> &);
+		NodeKey inner_contract(network<NodeVal,int,NodeKey,EdgeKey,Trait> &, const std::set<NodeKey,typename Trait::nodekey_less> &,
+			const absorb_type &,const contract_type &);
 
 		template <typename contract_type,typename absorb_type,typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
-		NodeKey contract_quickbb(network<NodeVal,int,NodeKey,EdgeKey,Trait> &, const std::set<NodeKey,typename Trait::nodekey_less> &);
+		NodeKey contract_quickbb(network<NodeVal,int,NodeKey,EdgeKey,Trait> &, const std::set<NodeKey,typename Trait::nodekey_less> &,
+			const absorb_type &,const contract_type &);
 
 		template <typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 		std::vector<std::set<NodeKey,typename Trait::nodekey_less>> divide(network<NodeVal,int,NodeKey,EdgeKey,Trait> &,
@@ -48,23 +52,27 @@ namespace net{
 
 	template<typename contract_type>
 	struct lift_contract{
+		contract_type contract_fun;
+		lift_contract(contract_type cf):contract_fun(cf){};
 		template <typename NodeVal,typename NoUse>
-		static NodeVal run(const NodeVal& ten1,const NodeVal& ten2,const NoUse & inds){
-			return std::make_tuple(contract_type::run(std::get<0>(ten1),std::get<0>(ten2),inds),std::get<1>(ten1),std::get<2>(ten1));
+		NodeVal operator()(const NodeVal& ten1,const NodeVal& ten2,const NoUse & inds) const{
+			return std::make_tuple(contract_fun(std::get<0>(ten1),std::get<0>(ten2),inds),std::get<1>(ten1),std::get<2>(ten1));
 		}
 	};
 
 	template<typename absorb_type>
 	struct lift_absorb{
+		absorb_type absorb_fun;
+		lift_absorb(absorb_type af):absorb_fun(af){};
 		template <typename NodeVal,typename EdgeVal, typename NoUse>
-		static NodeVal run(const NodeVal& ten1,const EdgeVal& eg,const NoUse & ind){
-			return std::make_tuple(absorb_type::run(std::get<0>(ten1),eg,ind),std::get<1>(ten1),std::get<2>(ten1));
+		NodeVal operator()(const NodeVal& ten1,const EdgeVal& eg,const NoUse & ind) const{
+			return std::make_tuple(absorb_fun(std::get<0>(ten1),eg,ind),std::get<1>(ten1),std::get<2>(ten1));
 		}
 	};
 
 	struct kset_contract{
 		template <typename NodeVal,typename EdgeKey, typename Comp>
-		static NodeVal run(const NodeVal& g1,const NodeVal& g2,const std::set<std::pair<EdgeKey,EdgeKey>,Comp> & inds){
+		NodeVal operator()(const NodeVal& g1,const NodeVal& g2,const std::set<std::pair<EdgeKey,EdgeKey>,Comp> & inds) const{
 			NodeVal res=g1;
 			res.insert(g2.begin(),g2.end());
 			return res;
@@ -73,37 +81,39 @@ namespace net{
 
 
 	template <typename contract_type,typename absorb_type,typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
-	NodeVal Engine::contract(network<NodeVal,int,NodeKey,EdgeKey,Trait> & lat, const std::set<NodeKey,typename Trait::nodekey_less> & part){
+	NodeVal Engine::contract(network<NodeVal,int,NodeKey,EdgeKey,Trait> & lat, const std::set<NodeKey,typename Trait::nodekey_less> & part,
+		const absorb_type & absorb_fun,const contract_type & contract_fun){
 
 		network<std::tuple<NodeVal,int,net::rational>,int,NodeKey,EdgeKey,Trait>  temp;
 		temp = lat.template fmap<decltype(temp)>([](const NodeVal & ten){return std::make_tuple(ten,0,net::rational(0,1));},[](const int & m){return m;});
-		std::string final_site=inner_contract<lift_contract<contract_type>,lift_absorb<absorb_type>>(temp,part);
+		std::string final_site=inner_contract(temp,part,lift_absorb(absorb_fun),lift_contract(contract_fun));
 		return std::get<0>(temp[final_site].val);
 	}
 	template <typename contract_type,typename absorb_type,typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
-	NodeVal Engine::contract_qbb(network<NodeVal,int,NodeKey,EdgeKey,Trait> & lat, const std::set<NodeKey,typename Trait::nodekey_less> & part){
+	NodeVal Engine::contract_qbb(network<NodeVal,int,NodeKey,EdgeKey,Trait> & lat, const std::set<NodeKey,typename Trait::nodekey_less> & part,
+		const absorb_type & absorb_fun,const contract_type & contract_fun){
 
 		network<std::tuple<NodeVal,int,net::rational>,int,NodeKey,EdgeKey,Trait>  temp;
 		temp = lat.template fmap<decltype(temp)>([](const NodeVal & ten){return std::make_tuple(ten,0,net::rational(0,1));},[](const int & m){return m;});
-		std::string final_site=contract_quickbb<lift_contract<contract_type>,lift_absorb<absorb_type>>(temp,part);
+		std::string final_site=contract_quickbb(temp,part,lift_absorb(absorb_fun),lift_contract(contract_fun));
 		return std::get<0>(temp[final_site].val);
 	}
 
 	template <typename contract_type,typename absorb_type,typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	NodeKey Engine::inner_contract(network<NodeVal,int,NodeKey,EdgeKey,Trait> & lat,
-		const std::set<NodeKey,typename Trait::nodekey_less> & part){
+		const std::set<NodeKey,typename Trait::nodekey_less> & part,const absorb_type & absorb_fun,const contract_type & contract_fun){
 
 		if(part.size()>max_quickbb_size){
 			std::vector<std::set<NodeKey,typename Trait::nodekey_less>> subparts=divide(lat,part);
 			std::set<NodeKey,typename Trait::nodekey_less> new_part;
 			for(auto & p:subparts)
-				new_part.insert(inner_contract<contract_type,absorb_type>(lat,p));
-			return inner_contract<contract_type,absorb_type>(lat,new_part);
+				new_part.insert(inner_contract(lat,p,absorb_fun,contract_fun));
+			return inner_contract(lat,new_part,absorb_fun,contract_fun);
 			// for(auto & p:subparts)
 			// 	new_part.insert(contract_quickbb<contract_type>(lat,p));
 			// return contract_quickbb<contract_type>(lat,new_part);
 		}else{
-			return contract_quickbb<contract_type,absorb_type>(lat,part);
+			return contract_quickbb(lat,part,absorb_fun,contract_fun);
 		}
 
 	}
@@ -130,7 +140,7 @@ namespace net{
 
 	template <typename contract_type,typename absorb_type,typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	NodeKey Engine::contract_quickbb(network<NodeVal,int,NodeKey,EdgeKey,Trait> & lat,
-		const std::set<NodeKey,typename Trait::nodekey_less> & part){
+		const std::set<NodeKey,typename Trait::nodekey_less> & part,const absorb_type & absorb_fun,const contract_type & contract_fun){
 
 		//if(contract_test_mode) 
 		//	lat.draw("lat before quickbb",{part},true);
@@ -162,11 +172,11 @@ namespace net{
 		}
 		int contract_size;
 		auto root_itr=least_contract1;
-		lat.template absorb<absorb_type,contract_type>(root_itr,least_contract2);
+		lat.absorb(root_itr,least_contract2,absorb_fun,contract_fun);
 		contract_size=2;
 		while(contract_size<part.size()){
 			std::tie(count,nb_itr)=search_quick<NodeItrType,KeySet,EdgeKey,Trait>(root_itr,part);
-			lat.template absorb<absorb_type,contract_type>(root_itr,nb_itr);
+			lat.absorb(root_itr,nb_itr,absorb_fun,contract_fun);
 			++contract_size;
 		}
 
@@ -279,7 +289,7 @@ namespace net{
 				if(treated_sites.count(std::get<1>(b))==0 && treated_sites.count(std::get<2>(b))==0){
 					treated_sites.insert(std::get<1>(b));
 					treated_sites.insert(std::get<2>(b));
-					fakelat.template absorb<no_absorb,kset_contract>(std::get<1>(b),std::get<2>(b));
+					fakelat.absorb(std::get<1>(b),std::get<2>(b),no_absorb(),kset_contract());
 					coarse_part.erase(std::get<2>(b));
 					combine_edges(fakelat,{std::get<1>(b)});
 				}
@@ -336,7 +346,7 @@ namespace net{
 				decide2exit=false;
 				for(auto & nb:ordered_nb){
 					if(max_weight_site_itr->second.val.size()+fakelat[nb.second].val.size()<=size_limit){
-						fakelat.template absorb<no_absorb,kset_contract>(max_weight_site_itr->first,nb.second);
+						fakelat.absorb(max_weight_site_itr->first,nb.second,no_absorb(),kset_contract());
 						treated_sites.insert(nb.second);
 					}else{
 						decide2exit=true; // exit2: reach limit
@@ -375,7 +385,7 @@ namespace net{
 					//std::cout<<"here2 "<<e.second.nbkey<<coarse_part.count(e.second.nbkey)<<final_sites.count(e.second.nbkey)<<'\n'; 
 					if(coarse_part.count(e.second.nbkey)>0 &&final_sites.count(e.second.nbkey)==0){
 						treated_sites.insert(e.second.nbkey);
-						fakelat.template absorb<no_absorb,kset_contract>(s,e.second.nbkey);
+						fakelat.absorb(s,e.second.nbkey,no_absorb(),kset_contract());
 						//std::cout<<treated_sites.size()<<"success\n";
 						//std::cout<<treated_sites.size()<<"success\n";
 						break;
@@ -742,7 +752,7 @@ namespace net{
 			std::set<std::string> includes;
 			for(auto & n:lat)
 				includes.insert(n.first);
-			return eg.contract<net::Tree_combine<TreeVal<typename NetType::NodeKeySetType>>,net::Tree_act<TreeVal<typename NetType::NodeKeySetType>>>(temp,includes);
+			return eg.contract(temp,includes,net::Tree_act<TreeVal<typename NetType::NodeKeySetType>>(),net::Tree_combine<TreeVal<typename NetType::NodeKeySetType>>());
 		}
 
 
@@ -762,7 +772,7 @@ namespace net{
 			std::set<std::string> includes;
 			for(auto & n:lat)
 				includes.insert(n.first);
-			return eg.contract_qbb<net::Tree_combine<TreeVal<typename NetType::NodeKeySetType>>,net::Tree_act<TreeVal<typename NetType::NodeKeySetType>>>(temp,includes);
+			return eg.contract_qbb(temp,includes,net::Tree_act<TreeVal<typename NetType::NodeKeySetType>>(),net::Tree_combine<TreeVal<typename NetType::NodeKeySetType>>());
 		}
 
 }
