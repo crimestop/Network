@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <random>
 #include <functional>
@@ -12,10 +13,73 @@
 #include <algorithm>
 #include <net/tensor_contract.hpp>
 #include <net/tensor_network.hpp>
-#define str std::to_string
 
+#include <memory>
+#include <vector>
+#include <iostream>
+#include <libkahypar.h>
 
+void test_kahypar(){
+
+  kahypar_context_t* context = kahypar_context_new();
+  kahypar_configure_context_from_file(context, "km1_kKaHyPar_sea20.ini");
+
+  const kahypar_hypernode_id_t num_vertices = 7;
+  const kahypar_hyperedge_id_t num_hyperedges = 4;
+
+  std::unique_ptr<kahypar_hyperedge_weight_t[]> hyperedge_weights = std::make_unique<kahypar_hyperedge_weight_t[]>(4);
+
+  // force the cut to contain hyperedge 0 and 2
+  hyperedge_weights[0] = 1;  hyperedge_weights[1] = 1000; 
+  hyperedge_weights[2] = 1;  hyperedge_weights[3] = 1000;
+	     	 
+  std::unique_ptr<size_t[]> hyperedge_indices = std::make_unique<size_t[]>(5);
+
+  hyperedge_indices[0] = 0; hyperedge_indices[1] = 2;
+  hyperedge_indices[2] = 6; hyperedge_indices[3] = 9;  	  
+  hyperedge_indices[4] = 12;
+
+  std::unique_ptr<kahypar_hyperedge_id_t[]> hyperedges = std::make_unique<kahypar_hyperedge_id_t[]>(12);
+
+  // hypergraph from hMetis manual page 14
+  hyperedges[0] = 0;  hyperedges[1] = 2;
+  hyperedges[2] = 0;  hyperedges[3] = 1;
+  hyperedges[4] = 3;  hyperedges[5] = 4;
+  hyperedges[6] = 3;  hyperedges[7] = 4;	
+  hyperedges[8] = 6;  hyperedges[9] = 2;
+  hyperedges[10] = 5; hyperedges[11] = 6;
+  	
+  const double imbalance = 0.03;
+  const kahypar_partition_id_t k = 2;
+  	
+  kahypar_hyperedge_weight_t objective = 0;
+
+  std::vector<kahypar_partition_id_t> partition(num_vertices, -1);
+
+  kahypar_partition(num_vertices, num_hyperedges,
+       	            imbalance, k,
+               	    /*vertex_weights */ nullptr, hyperedge_weights.get(),
+               	    hyperedge_indices.get(), hyperedges.get(),
+       	            &objective, context, partition.data());
+
+  for(int i = 0; i != num_vertices; ++i) {
+    std::cout << i << ":" << partition[i] << std::endl;
+  }
+
+  kahypar_context_free(context);
+}
+
+std::string str(int p){
+	std::ostringstream os;
+	os<<std::setw(4) << std::setfill('0') << p;
+	return os.str();
+}
+
+//#define str std::to_string
 int main(){
+
+	// test_kahypar();
+	// return 0;
 
 	// net::tree<std::set<std::string>> tree1({"A"});
 	// net::tree<std::set<std::string>> tree2({"B"});
@@ -26,7 +90,7 @@ int main(){
 	// for(auto & i: tree3->val ) std::cout<<i<<" **************\n";
 	// 	std::cout<<"finish **************\n";
 
-	int L1=6,L2=6,dim=4;
+	int L1=12,L2=24,dim=4;
 
 	using namespace std::placeholders;
 	int seed =std::random_device()();
@@ -118,17 +182,23 @@ int main(){
 	// 		std::cout<<"min = "<<*mincount<<'\n';
 	// 	}
 	// }
+	auto ctree2 = net::get_contract_tree_qbb<net::contract_info2>(lat2,eg);
+	std::cout<<"quickbb "<<ctree2->val.hist_max_weight<<','<<ctree2->val.contraction_cost<<'\n';
+	//ctree2->draw();
+
+	auto ctree3 = net::get_contract_tree_naive<net::contract_info2>(lat2,eg);
+	std::cout<<"naive "<<ctree3->val.hist_max_weight<<','<<ctree3->val.contraction_cost<<'\n';
+	//ctree3->draw();
 
 
-
-	for(int i=4;i<4;++i){
+	for(int i=2;i<3;++i){
 		eg.cut_part=i;
-		for(int j=0;j<4;++j){
-			eg.uneven=0.2*(4-j);
+		for(int j=0;j<50;++j){
+			eg.uneven=0.02*j;
 			std::cout<<"part = "<<eg.cut_part<<" uneven = "<<eg.uneven<<' ';
 			//std::vector<double> test_time;
 			std::vector<double> test_count;
-			for(int k=0;k<10;++k){
+			for(int k=0;k<1;++k){
 				auto ctree = net::get_contract_tree<net::contract_info2>(lat2,eg);
 				// start_time=std::chrono::steady_clock::now();
 				// net::tensor::Tensor<double> ten = lat2.contract<net::no_absorb,net::tensor::tensor_contract>(ctree);
@@ -137,36 +207,36 @@ int main(){
 				// std::cout<<cumu_time.count()<<' ';
 				test_count.push_back(ctree->val.contraction_cost);
 				std::cout<<' '<<ctree->val.hist_max_weight<<','<<ctree->val.contraction_cost<<' ';
+				//if(j==0)ctree->draw();
 				delete ctree;
 			}
 			//std::vector<double>::iterator mintime = std::min_element(test_time.begin(), test_time.end());
 			//std::cout<<"min = "<<*mintime<<'\n';
 			std::vector<double>::iterator mincount = std::min_element(test_count.begin(), test_count.end());
-			std::cout<<"min = "<<*mincount<<'\n';
+			std::cout<<"min = "<<(*mincount)<<'\n';
 		}
 	}
-	auto ctree2 = net::get_contract_tree_qbb<net::keyset>(lat2,eg);
 
 
-	auto ctree = net::get_contract_tree<net::keyset>(lat2,eg);
+	//auto ctree = net::get_contract_tree<net::keyset>(lat2,eg);
 	//net::tree<typename decltype(temp)::NodeKeySetType>* ctree = eg.contract<net::Tree_combine<set_contract>>(temp2,includes);
 	//net::tensor::Tensor<double> ten = eg.contract<net::tensor::tensor_contract>(temp,includes);
 	//auto ctree2 = net::get_contract_tree_quickbb<double>(lat2,eg);
 
 	//ctree->draw();
-	timer benchmark;
+	//timer benchmark;
 
 
-	start_time=std::chrono::steady_clock::now();
-	net::tensor::Tensor<double> ten2 = lat2.contract_tree(ctree2,net::no_absorb(),net::tensor::contract());
-	cumu_time=std::chrono::steady_clock::now()-start_time;
-	std::cout<<"quickbb "<<cumu_time.count()<<'\n';
-	start_time=std::chrono::steady_clock::now();
-	net::tensor::Tensor<double> ten3 = lat2.contract(net::no_absorb(),net::tensor::contract());
-	cumu_time=std::chrono::steady_clock::now()-start_time;
-	std::cout<<"naive "<<cumu_time.count()<<'\n';
+	// start_time=std::chrono::steady_clock::now();
+	// net::tensor::Tensor<double> ten2 = lat2.contract_tree(ctree2,net::no_absorb(),net::tensor::contract());
+	// cumu_time=std::chrono::steady_clock::now()-start_time;
+	// std::cout<<"quickbb "<<cumu_time.count()<<'\n';
+	// start_time=std::chrono::steady_clock::now();
+	// net::tensor::Tensor<double> ten3 = lat2.contract(net::no_absorb(),net::tensor::contract());
+	// cumu_time=std::chrono::steady_clock::now()-start_time;
+	// std::cout<<"naive "<<cumu_time.count()<<'\n';
 
 
-	benchmark.print();
+	//benchmark.print();
 	return 0;
 }

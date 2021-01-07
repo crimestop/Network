@@ -1,11 +1,11 @@
 #ifndef NET_GVIZ_THEMES
 #define NET_GVIZ_THEMES
-#include <string>
 #include <nlohmann/json.hpp>
-namespace net{
-// use default plot color in matplotlib
-// we use json lib https://github.com/nlohmann/json to parse json
-inline std::string theme_dark1=R"({
+#include <string>
+namespace net {
+	// use default plot color in matplotlib
+	// we use json lib https://github.com/nlohmann/json to parse json
+	inline std::string theme_dark1 = R"({
 	"global_bgcolor" : "transparent" ,
 	"global_fontcolor" : "white" ,
 	"global_fontname" : "Monaco" ,
@@ -58,7 +58,7 @@ inline std::string theme_dark1=R"({
 	}
 })";
 
-inline std::string theme_light1=R"({
+	inline std::string theme_light1 = R"({
 	"global_bgcolor":"white",
 	"global_fontcolor":"black",
 	"global_fontname":"Monaco",
@@ -112,7 +112,7 @@ inline std::string theme_light1=R"({
 	}
 })";
 
-inline std::string theme_light2=R"({
+	inline std::string theme_light2 = R"({
 	"global_bgcolor":"transparent",
 	"global_fontcolor":"black",
 	"global_fontname":"Monaco",
@@ -166,11 +166,10 @@ inline std::string theme_light2=R"({
 	}
 })";
 
-	
 	inline auto gviz_theme_dark1 = nlohmann::json::parse(theme_dark1);
 	inline auto gviz_theme_light1 = nlohmann::json::parse(theme_light1);
 	inline auto gviz_theme_light2 = nlohmann::json::parse(theme_light2);
 
-	inline auto gviz_theme=gviz_theme_dark1;
-}
+	inline auto gviz_theme = gviz_theme_dark1;
+} // namespace net
 #endif
