@@ -18,6 +18,8 @@ LINKOPT := -lblas -llapack -L $(GRAPHVIZPATH)/lib -lgvc -lcgraph -L /usr/local/l
 MAKEOPT := -g -std=c++17  -O3 -I $(TATPATH)/include -DTAT_USE_VALID_DEFAULT_TENSOR -DTAT_USE_SIMPLE_NAME -DTAT_USE_SINGULAR_MATRIX -DTAT_USE_SIMPLE_NOSYMMETRY -DTAT_USE_COPY_WITHOUT_WARNING -I $(GRAPHVIZPATH)/include -I$(NETPATH)/include -DNET_GRAPH_VIZ -DNET_SHOW_FIG_USE_ITERM -I$(JSONPATH)/include -I$(BOOSTPATH) -I/usr/local/include
 
 all: run.out test.out
+run: run.out
+test2: test.out
 
 test.out:$(TEST2)
 	$(CC) $(FFLAGS) -o $@ $^ $(LINKOPT) 
@@ -27,4 +29,4 @@ run.out:$(TEST)
 	$(CC) $(FFLAGS) -c -o $@ -c $(<) $(MAKEOPT)
 clean:
 	rm .*.o *.mod *.out 
-.PHONY:	all clean test.out
+.PHONY:	all clean run.out test.out

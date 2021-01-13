@@ -12,7 +12,15 @@
 #include <memory>
 #include <vector>
 #include <iostream>
-#include <libkahypar.h>
+#ifdef USE_LIB_KAHYPAR
+	#include <libkahypar.h>
+#else
+	#include <kahypar/application/command_line_options.h>
+	#include <kahypar/definitions.h>
+	#include <kahypar/io/hypergraph_io.h>
+	#include <kahypar/partitioner_facade.h>
+#endif
+
 
 namespace net {
 	inline bool contract_test_mode = false;
@@ -49,6 +57,13 @@ namespace net {
 	private:
 		template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 		NodeKey inner_contract(
+				network<NodeVal, int, NodeKey, EdgeKey, Trait> &,
+				const std::set<NodeKey, typename Trait::nodekey_less> &,
+				const absorb_type &,
+				const contract_type &);
+
+		template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
+		NodeKey inner_contract_usebetter(
 				network<NodeVal, int, NodeKey, EdgeKey, Trait> &,
 				const std::set<NodeKey, typename Trait::nodekey_less> &,
 				const absorb_type &,
@@ -150,6 +165,28 @@ namespace net {
 
 	template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	NodeKey Engine::inner_contract(
+			network<NodeVal, int, NodeKey, EdgeKey, Trait> & lat,
+			const std::set<NodeKey, typename Trait::nodekey_less> & part,
+			const absorb_type & absorb_fun,
+			const contract_type & contract_fun) {
+
+		if (part.size() > max_quickbb_size) {
+			//std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide(lat, part);
+			std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide_kahypar(lat, part);
+			std::set<NodeKey, typename Trait::nodekey_less> new_part;
+			for (auto & p : subparts)
+				new_part.insert(inner_contract(lat, p, absorb_fun, contract_fun));
+			return inner_contract(lat, new_part, absorb_fun, contract_fun);
+			// for(auto & p:subparts)
+			// 	new_part.insert(contract_quickbb<contract_type>(lat,p));
+			// return contract_quickbb<contract_type>(lat,new_part);
+		} else {
+			return contract_quickbb(lat, part, absorb_fun, contract_fun);
+		}
+	}
+
+	template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
+	NodeKey Engine::inner_contract_usebetter(
 			network<NodeVal, int, NodeKey, EdgeKey, Trait> & lat,
 			const std::set<NodeKey, typename Trait::nodekey_less> & part,
 			const absorb_type & absorb_fun,
@@ -352,13 +389,8 @@ namespace net {
 	template <typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	std::vector<std::set<NodeKey, typename Trait::nodekey_less>>
 	Engine::divide_kahypar(network<NodeVal, int, NodeKey, EdgeKey, Trait> & lat, const std::set<NodeKey, typename Trait::nodekey_less> & part) {
-	
-		//std::cout<<"in\n";
-		kahypar_context_t* context = kahypar_context_new();
-		//std::cout<<"in1\n";
-		kahypar_configure_context_from_file(context, "km1_kKaHyPar_sea20.ini");
 
-		//std::cout<<"in2\n";
+
 		const kahypar_hypernode_id_t num_vertices = part.size();
 		kahypar_hyperedge_id_t num_hyperedges = 0;
 
@@ -416,13 +448,53 @@ namespace net {
 
 		std::vector<kahypar_partition_id_t> partition(num_vertices, -1);
 
+#ifdef USE_LIB_KAHYPAR
+		kahypar_context_t* context = kahypar_context_new();
+		kahypar_configure_context_from_file(context, "km1_kKaHyPar_sea20.ini");
 		kahypar_partition(num_vertices, num_hyperedges,
 		   	            imbalance, k,
 		           	    /*vertex_weights */ nullptr, hyperedge_weights.data(),
 		           	    hyperedge_indices.data(), hyperedges.data(),
 		   	            &objective, context, partition.data());
+		kahypar_context_free(context);
+#else
+		kahypar::Context& context;
+		kahypar::parseIniToContext(context,"km1_kKaHyPar_sea20.ini");
+		ASSERT(!context.partition.use_individual_part_weights ||
+		     !context.partition.max_part_weights.empty());
+		ASSERT(partition != nullptr);
 
-		//std::cout<<"in6\n";
+		context.partition.k = k;
+		context.partition.epsilon = imbalance;
+		context.partition.write_partition_file = false;
+
+		kahypar::Hypergraph hypergraph(num_vertices,
+		                             num_hyperedges,
+		                             hyperedge_indices.data(),
+		                             hyperedges.data(),
+		                             context.partition.k,
+		                             hyperedge_weights.data(),
+		                             /*vertex_weights */ nullptr);
+
+		if (context.partition.vcycle_refinement_for_input_partition) {
+			for (const auto hn : hypergraph.nodes()) {
+				hypergraph.setNodePart(hn, partition[hn]);
+			}
+		}
+
+		kahypar::PartitionerFacade().partition(hypergraph, context);
+
+		*objective = kahypar::metrics::correctMetric(hypergraph, context);
+
+		for (const auto hn : hypergraph.nodes()) {
+			partition[hn] = hypergraph.partID(hn);
+		}
+
+		context.partition.perfect_balance_part_weights.clear();
+		context.partition.max_part_weights.clear();
+		context.evolutionary.communities.clear();
+#endif
+
 		std::vector<std::set<NodeKey, typename Trait::nodekey_less>> results(k);
 		//std::cout<<"result\n";
 		for(int i = 0; i != num_vertices; ++i){
@@ -432,10 +504,6 @@ namespace net {
 		//std::cout<<"part\n";
 		//for(auto &p :part)
 		//	std::cout<<p<<'\n';
-
-
-		kahypar_context_free(context);
-		//std::cout<<"out\n";
 
 		//return results;
 		return disconnect(lat, part, results);
