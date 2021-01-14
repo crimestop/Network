@@ -520,8 +520,9 @@ namespace net {
 			throw key_unfound_error("In network.set_edge, node " + to_string(nodekey2) + " is not found!");
 		}
 
-		node_itr1->second.set_edge(ind1, nodekey2, ind2, node_itr2, edgeval);
-		node_itr2->second.set_edge(ind2, nodekey1, ind1, node_itr1, edgeval);
+		set_edge_node(node_itr1,node_itr2,ind1,ind2,edgeval);
+		// node_itr1->second.set_edge(ind1, nodekey2, ind2, node_itr2, edgeval);
+		// node_itr2->second.set_edge(ind2, nodekey1, ind1, node_itr1, edgeval);
 	}
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
@@ -531,8 +532,9 @@ namespace net {
 			const EdgeKey & ind1,
 			const EdgeKey & ind2,
 			const EdgeVal & edgeval) {
-		it1->second.set_edge(ind1, it2->first, ind2, it2, edgeval);
-		it2->second.set_edge(ind2, it1->first, ind1, it1, edgeval);
+		set_edge_node(it1,it2,ind1,ind2,edgeval);
+		// it1->second.set_edge(ind1, it2->first, ind2, it2, edgeval);
+		// it2->second.set_edge(ind2, it1->first, ind1, it1, edgeval);
 	}
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
@@ -565,7 +567,7 @@ namespace net {
 		}
 
 		node_itr1->second.absorb_nb(nodekey2, node_itr2->second.val, absorb_fun, contract_fun);
-		node_itr2->second.transfer_edge(node_itr1, false, [&nodekey1](auto & egitr) { return egitr->second.nbkey != nodekey1; });
+		node_itr2->second.transfer_edge(node_itr1, [&nodekey1](auto & egitr) { return egitr->second.nbkey != nodekey1; });
 		this->erase(node_itr2);
 	}
 
@@ -577,7 +579,7 @@ namespace net {
 			const absorb_type & absorb_fun,
 			const contract_type & contract_fun) {
 		node_itr1->second.absorb_nb(node_itr2->first, node_itr2->second.val, absorb_fun, contract_fun);
-		node_itr2->second.transfer_edge(node_itr1, false, [&node_itr1](auto & egitr) { return egitr->second.nbkey != node_itr1->first; });
+		node_itr2->second.transfer_edge(node_itr1, [&node_itr1](auto & egitr) { return egitr->second.nbkey != node_itr1->first; });
 		this->erase(node_itr2);
 	}
 
@@ -597,12 +599,13 @@ namespace net {
 		auto s2 = add(nodekey2);
 		auto s3 = add(nodekey3);
 
-		s1->second.transfer_edge(s2, s3, false, [&inds](auto & egitr) { return inds.count(egitr->first) == 0; });
+		s1->second.transfer_edge(s2, s3, [&inds](auto & egitr) { return inds.count(egitr->first) == 0; });
 
 		EdgeVal env;
 		split_fun(s1->second.val, s2->second.val, s3->second.val, inds, ind2, ind3, env);
-		s2->second.set_edge(ind2, nodekey3, ind3, s3, env);
-		s3->second.set_edge(ind3, nodekey2, ind2, s2, env);
+		// s2->second.set_edge(ind2, nodekey3, ind3, s3, env);
+		// s3->second.set_edge(ind3, nodekey2, ind2, s2, env);
+		set_edge_node(s2,s3,ind2,ind3,env);
 		this->erase(s1);
 		return std::make_pair(s2, s3);
 	}
@@ -621,12 +624,13 @@ namespace net {
 		auto s2 = add(nodekey2);
 		auto s3 = add(nodekey3);
 
-		s1->second.transfer_edge(s2, s3, false, [&inds](auto & egitr) { return inds.count(egitr->first) == 0; });
+		s1->second.transfer_edge(s2, s3, [&inds](auto & egitr) { return inds.count(egitr->first) == 0; });
 
 		EdgeVal env;
 		split_fun(s1->second.val, s2->second.val, s3->second.val, inds, ind2, ind3, env);
-		s2->second.set_edge(ind2, nodekey3, ind3, s3, env);
-		s3->second.set_edge(ind3, nodekey2, ind2, s2, env);
+		//s2->second.set_edge(ind2, nodekey3, ind3, s3, env);
+		//s3->second.set_edge(ind3, nodekey2, ind2, s2, env);
+		set_edge_node(s2,s3,ind2,ind3,env);
 		this->erase(s1);
 	}
 
@@ -641,13 +645,14 @@ namespace net {
 			const split_type & split_fun) {
 		auto s2 = add(nodekey2);
 
-		s1->second.transfer_edge(s2, true, [&inds](auto & egitr) { return inds.count(egitr->first) == 1; });
+		s1->second.transfer_edge(s2, [&inds](auto & egitr) { return inds.count(egitr->first) == 1; });
 
 		auto temp = s1->second.val;
 		EdgeVal env;
 		split_fun(temp, s1->second.val, s2->second.val, inds, ind1, ind2, env);
-		s1->second.set_edge(ind1, nodekey2, ind2, s2, env);
-		s2->second.set_edge(ind2, s1->first, ind1, s1, env);
+		// s1->second.set_edge(ind1, nodekey2, ind2, s2, env);
+		// s2->second.set_edge(ind2, s1->first, ind1, s1, env);
+		set_edge_node(s1,s2,ind1,ind2,env);
 		return s2;
 	}
 
@@ -663,13 +668,14 @@ namespace net {
 		auto s1 = this->find(nodekey1);
 		auto s2 = add(nodekey2);
 
-		s1->second.transfer_edge(s2, true, [&inds](auto & egitr) { return inds.count(egitr->first) == 1; });
+		s1->second.transfer_edge(s2, [&inds](auto & egitr) { return inds.count(egitr->first) == 1; });
 
 		auto temp = s1->second.val;
 		EdgeVal env;
 		split_fun(temp, s1->second.val, s2->second.val, inds, ind1, ind2, env);
-		s1->second.set_edge(ind1, nodekey2, ind2, s2, env);
-		s2->second.set_edge(ind2, nodekey1, ind1, s1, env);
+		// s1->second.set_edge(ind1, nodekey2, ind2, s2, env);
+		// s2->second.set_edge(ind2, nodekey1, ind1, s1, env);
+		set_edge_node(s1,s2,ind1,ind2,env);
 	}
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
