@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <net/tensor_contract.hpp>
 #include <net/tensor_network.hpp>
+#include <net/algorithm.hpp>
 
 #include <memory>
 #include <vector>
@@ -90,32 +91,41 @@ int main(){
 	// for(auto & i: tree3->val ) std::cout<<i<<" **************\n";
 	// 	std::cout<<"finish **************\n";
 
-	int L1=12,L2=24,dim=4;
+	int L1=24,L2=24,dim=4;
 
 	using namespace std::placeholders;
 	int seed =std::random_device()();
 	std::default_random_engine random_engine(seed);
 
 
+
 	net::tensor::TensorNetworkNoEnv<double> lat2;
-	for(int i=0;i<L1;++i){
-		for (int j=0;j<L2;++j){
-			//std::cout<<i<<j<<"\n";
-			lat2.add("ten"+str(i)+"_"+str(j));
-			lat2["ten"+str(i)+"_"+str(j)].val=1;
-		}
+	for(int i=0;i<400;++i){
+		lat2.add("ten"+str(i));
 	}
-	for(int i=0;i<L1;++i){
-		for (int j=0;j<L2-1;++j){
-			//std::cout<<i<<j<<std::endl;
-			lat2.set_edge("ten"+str(i)+"_"+str(j),"ten"+str(i)+"_"+str(j+1));
-		}
-	}
-	for(int i=0;i<L1-1;++i){
-		for (int j=0;j<L2;++j){
-			lat2.set_edge("ten"+str(i)+"_"+str(j),"ten"+str(i+1)+"_"+str(j));
-		}
-	}
+	generate_random_regular_network(lat2,5,random_engine);
+	std::cout<<"finish\n"; 
+	//lat2.draw("rand",true);
+
+	// net::tensor::TensorNetworkNoEnv<double> lat2;
+	// for(int i=0;i<L1;++i){
+	// 	for (int j=0;j<L2;++j){
+	// 		//std::cout<<i<<j<<"\n";
+	// 		lat2.add("ten"+str(i)+"_"+str(j));
+	// 		//lat2["ten"+str(i)+"_"+str(j)].val=1;
+	// 	}
+	// }
+	// for(int i=0;i<L1;++i){
+	// 	for (int j=0;j<L2-1;++j){
+	// 		//std::cout<<i<<j<<std::endl;
+	// 		lat2.set_edge("ten"+str(i)+"_"+str(j),"ten"+str(i)+"_"+str(j+1));
+	// 	}
+	// }
+	// for(int i=0;i<L1-1;++i){
+	// 	for (int j=0;j<L2;++j){
+	// 		lat2.set_edge("ten"+str(i)+"_"+str(j),"ten"+str(i+1)+"_"+str(j));
+	// 	}
+	// }
 
 	// std::tuple<net::tensor::Tensor<double>,int,int> transform(const net::tensor::Tensor<double> & ten){
 	// 	return std::make_tuple(ten,0,0);
@@ -194,7 +204,7 @@ int main(){
 	for(int i=2;i<3;++i){
 		eg.cut_part=i;
 		for(int j=0;j<50;++j){
-			eg.uneven=0.02*j;
+			eg.uneven=0.98-0.02*j;
 			std::cout<<"part = "<<eg.cut_part<<" uneven = "<<eg.uneven<<' ';
 			//std::vector<double> test_time;
 			std::vector<double> test_count;
