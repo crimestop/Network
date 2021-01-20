@@ -151,7 +151,7 @@ namespace net {
 				// std::cout<<"ten2\n";
 				// diminfo(ten2,std::cout);
 				env = svd_res.S;
-				env = env / env.template norm<-1>();
+				env /= env.template norm<-1>();
 				// std::cout<<'\n';
 				// std::cout<<env<<"\n";
 				// std::cout<<ten2<<"\n";

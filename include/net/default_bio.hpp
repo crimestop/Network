@@ -4,6 +4,7 @@
 #include "type.hpp"
 #include <complex>
 #include <map>
+#include <set>
 #include <vector>
 
 namespace net {

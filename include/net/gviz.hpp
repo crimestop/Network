@@ -38,7 +38,7 @@ namespace net {
 					grp = std::to_string(i);
 			dot_content << "  " << Trait::nodekey_brief(nodekey1)
 							<< " [ color=" << gviz_theme["group" + grp].value("node_strokecolor", gviz_theme["node_strokecolor"]) << ", label = \""
-							//<< Trait::nodekey_brief(nodekey1)
+							<< Trait::nodekey_brief(nodekey1)
 							<< ""
 							<< "\", fontcolor=" << gviz_theme["group" + grp].value("node_fontcolor", gviz_theme["node_fontcolor"])
 							<< ", fontname=" << gviz_theme["group" + grp].value("node_fontname", gviz_theme["node_fontname"]) << "]\n";
