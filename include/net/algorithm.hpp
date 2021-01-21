@@ -37,33 +37,40 @@ namespace net{
 		std::set<std::pair<int,int>> edges;
 		int tot_avail;
 		int ind1,ind2,site1,site2;
+		bool found;
 		do{
 			tot_avail=N*d;
 			for(int i=0;i<N;++i)
 				avail[i]=d;
 			edges.clear();
 
-
 			for(int i=0;i<N;++i){
 				edges.insert({i,(i+1)%N});
 				avail[i]--;
 				avail[(i+1)%N]--;
-				//std::cout<<site1<<' '<<site2<<' '<<N<<'\n';
 				tot_avail-=2;
 			}
+			found = true;
 			while(tot_avail>0){
 				//std::cout<<tot_avail<<'\n';
-				if(tot_avail<=d && avail.max()==tot_avail) // if all available inds are on same site, delete d edges
+				if(!found){ // if there's no available edge, delete d edges
 					for(int i=0;i<d;++i){
-						auto it=edges.begin();
-						std::advance(it,edges.size()*distribution(R));
-						avail[it->first]++;
-						avail[it->second]++;
-						edges.erase(it);
-						tot_avail+=2;
+						if(edges.size()>0){
+							auto it=edges.begin();
+							std::advance(it,int(edges.size()*distribution(R)));
+							avail[it->first]++;
+							avail[it->second]++;
+							edges.erase(it);
+							tot_avail+=2;
+						}
 					}
+					// for(auto s:avail)
+					// 	std::cout<<s<<' ';
+					// std::cout<<std::endl;
+				}
 
-				do{
+				found = false;
+				for(int i=0;i<1000;i++){
 					ind1=tot_avail*distribution(R);
 					ind2=tot_avail*distribution(R);
 					//std::cout<<' '<<ind1<<' '<<ind2<<' '<<tot_avail<<'\n';
@@ -75,19 +82,23 @@ namespace net{
 					site2=-1;
 					for(int site_cumu=-1;site_cumu<ind2;site_cumu+=avail[++site2]);
 					//std::cout<<' '<<site1<<' '<<site2<<'\n';
-				}while(site1 == site2 || edges.count({site1,site2})>0 || edges.count({site2,site1})>0); // avoid double edge and loop on one site
-
-				edges.insert({site1,site2});
-				avail[site1]--;
-				avail[site2]--;
-				//std::cout<<site1<<' '<<site2<<' '<<N<<'\n';
-				tot_avail-=2;
+					if(site1 != site2 && edges.count({site1,site2})==0 && edges.count({site2,site1}) ==0){
+														 // avoid double edge and loop on one site
+						found=true;
+						edges.insert({site1,site2});
+						avail[site1]--;
+						avail[site2]--;
+						//std::cout<<site1<<' '<<site2<<' '<<N<<'\n';
+						tot_avail-=2;
+						break;
+					}
+				} 
 			}
 		}while(!is_connected(N,edges)); // do until the network is connected
 
 		int pos1,pos2,sf1,sf2,sf3,sf4; // shuffle edges
 		std::pair<int,int> edge1,edge2;
-		for(int i=0;i<1000;i++){
+		for(int i=0;i<2000;i++){
 			//std::cout<< i<<'\n';
 			do{
 				pos1=N*d/2*distribution(R);
@@ -136,10 +147,9 @@ namespace net{
 		for(auto & s:N)
 			keys.push_back(s.first);
 		for(auto & e:edges){
-			std::cout<<e.first<<' '<<e.second<<'\n';
+			//std::cout<<e.first<<' '<<e.second<<'\n';
 			N.set_edge(keys[e.first],keys[e.second]);
 		}
-		//std::cout<<"finish\n";
 	}
 
 }

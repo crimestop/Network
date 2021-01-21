@@ -4,6 +4,7 @@
 #include "error.hpp"
 #include "network.hpp"
 #include "traits.hpp"
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>

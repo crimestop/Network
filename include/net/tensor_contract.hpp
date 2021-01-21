@@ -12,7 +12,7 @@
 #include <memory>
 #include <vector>
 #include <iostream>
-#ifdef USE_LIB_KAHYPAR
+#ifdef NET_USE_LIB_KAHYPAR
 	#include <libkahypar.h>
 #else
 	#include <kahypar/application/command_line_options.h>
@@ -47,7 +47,7 @@ namespace net {
 				const contract_type &);
 
 		int coarse_grain_to = 800;
-		int cut_part = 8;
+		int cut_part = 2;
 		int refine_sweep = 10000;
 		int max_quickbb_size = 10;
 		//double uneven = 0.2;
@@ -61,14 +61,7 @@ namespace net {
 				const std::set<NodeKey, typename Trait::nodekey_less> &,
 				const absorb_type &,
 				const contract_type &,
-				double,bool);
-
-		template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
-		NodeKey inner_contract_usebetter(
-				network<NodeVal, int, NodeKey, EdgeKey, Trait> &,
-				const std::set<NodeKey, typename Trait::nodekey_less> &,
-				const absorb_type &,
-				const contract_type &);
+				double,bool,std::string);
 
 		template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 		NodeKey contract_quickbb(
@@ -83,7 +76,7 @@ namespace net {
 
 		template <typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 		std::vector<std::set<NodeKey, typename Trait::nodekey_less>>
-		divide_kahypar(network<NodeVal, int, NodeKey, EdgeKey, Trait> &, const std::set<NodeKey, typename Trait::nodekey_less> &,double);
+		divide_kahypar(network<NodeVal, int, NodeKey, EdgeKey, Trait> &, const std::set<NodeKey, typename Trait::nodekey_less> &,double,bool&);
 
 		template <typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 		double refine(
@@ -137,7 +130,7 @@ namespace net {
 		network<std::tuple<NodeVal, int, net::rational>, int, NodeKey, EdgeKey, Trait> temp;
 		temp = lat.template fmap<decltype(temp)>(
 				[](const NodeVal & ten) { return std::make_tuple(ten, 0, net::rational(0, 1)); }, [](const int & m) { return m; });
-		std::string final_site = inner_contract(temp, part, lift_absorb(absorb_fun), lift_contract(contract_fun),0.,false);
+		std::string final_site = inner_contract(temp, part, lift_absorb(absorb_fun), lift_contract(contract_fun),0.,false," ");
 		return std::get<0>(temp[final_site].val);
 	}
 	template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
@@ -169,114 +162,74 @@ namespace net {
 			network<NodeVal, int, NodeKey, EdgeKey, Trait> & lat,
 			const std::set<NodeKey, typename Trait::nodekey_less> & part,
 			const absorb_type & absorb_fun,
-			const contract_type & contract_fun,double uneven, bool fix_uneven) {
+			const contract_type & contract_fun,double uneven, bool fix_uneven,std::string log) {
 
-		if (part.size() > max_quickbb_size) {
-			//std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide(lat, part);
-			std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide_kahypar(lat, part);
-			std::set<NodeKey, typename Trait::nodekey_less> new_part;
-			for (auto & p : subparts)
-				new_part.insert(inner_contract(lat, p, absorb_fun, contract_fun));
-			return inner_contract(lat, new_part, absorb_fun, contract_fun);
-			// for(auto & p:subparts)
-			// 	new_part.insert(contract_quickbb<contract_type>(lat,p));
-			// return contract_quickbb<contract_type>(lat,new_part);
-		} else {
-			return contract_quickbb(lat, part, absorb_fun, contract_fun);
-		}
-	}
-
-	template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
-	NodeKey Engine::inner_contract_usebetter(
-			network<NodeVal, int, NodeKey, EdgeKey, Trait> & lat,
-			const std::set<NodeKey, typename Trait::nodekey_less> & part,
-			const absorb_type & absorb_fun,
-			const contract_type & contract_fun) {
-
+		//std::cout<<"in inner"<<std::endl;
 		NodeKey contract_res1,contract_res2;
 		
 		double new_eneven,best_eneven,min_cost,this_cost;
 		//network<NodeVal, int, NodeKey, EdgeKey, Trait>  temp2 = lat;
 
+		bool failed;
 		if (part.size() > max_quickbb_size) {
 			if(!fix_uneven){
 				min_cost=-1.;
 				for(int j=0;j<50;++j){
-					NodeKey contract_res1;
+					NodeKey contract_res;
 					network<NodeVal, int, NodeKey, EdgeKey, Trait>  temp = lat;
 					new_eneven=0.02*j;
 					//std::cout<<"part = "<<eg.cut_part<<" uneven = "<<eg.uneven<<'\n';
-					std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide_kahypar(temp, part,new_eneven);
+					std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide_kahypar(temp, part,new_eneven,failed);
+
+					// std::cout<<"portal1 "<<new_eneven;
+					// for (auto & p : subparts)
+					// 	std::cout<<' '<<p.size();
+					// std::cout<<std::endl;
+					
 					std::set<NodeKey, typename Trait::nodekey_less> new_part;
-					for (auto & p : subparts)
-						new_part.insert(inner_contract(temp, p, absorb_fun, contract_fun,new_eneven,true));
-					contract_res1=inner_contract(temp, new_part, absorb_fun, contract_fun,new_eneven,true);
-					//std::cout<<' '<<ctree->val.hist_max_weight<<','<<ctree->val.contraction_cost<<'\n';
-					this_cost=std::get<0>(temp[contract_res1].val)->val.contraction_cost;
+					for (auto & p : subparts){
+						new_part.insert(inner_contract(temp, p, absorb_fun, contract_fun,new_eneven,true," "));
+					}
+					contract_res=contract_quickbb(temp, new_part, absorb_fun, contract_fun);
+					this_cost=std::get<0>(temp[contract_res].val)->val.contraction_cost;
+					//std::cout<<new_eneven<<' '<<this_cost<<'\n';
 					if(min_cost<0 || this_cost<min_cost){
 						min_cost=this_cost;
 						best_eneven=new_eneven;
 					}
-					
+					if(failed) break;
 				}
-				std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide_kahypar(lat, part,best_eneven);
+				std::cout<<log<<' '<<best_eneven<<' '<<min_cost<<'\n';
+				std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide_kahypar(lat, part,best_eneven,failed);
 				std::set<NodeKey, typename Trait::nodekey_less> new_part;
-				for (auto & p : subparts)
-					new_part.insert(inner_contract(lat, p, absorb_fun, contract_fun,best_eneven,false));
-				return inner_contract(lat, new_part, absorb_fun, contract_fun,best_eneven,true);
+				int sp=0;
+				for (auto & p : subparts){
+					new_part.insert(inner_contract(lat, p, absorb_fun, contract_fun,best_eneven,false,log+std::to_string(sp)));
+					sp++;
+				}
+				//std::cout<<"out inner"<<std::endl;
+				return contract_quickbb(lat, new_part, absorb_fun, contract_fun);
 
 			}else{
-				std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide_kahypar(lat, part,uneven);
+				std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide_kahypar(lat, part,uneven,failed);
 				std::set<NodeKey, typename Trait::nodekey_less> new_part;
+
+					// std::cout<<"portal2 "<<part.size()<<subparts.size()<<uneven;
+					// for (auto & p : subparts)
+					// 	std::cout<<' '<<p.size();
+					// std::cout<<std::endl;
 				for (auto & p : subparts)
-					new_part.insert(inner_contract(lat, p, absorb_fun, contract_fun,uneven,true));
-				return inner_contract(lat, new_part, absorb_fun, contract_fun,uneven,true);
+					new_part.insert(inner_contract(lat, p, absorb_fun, contract_fun,uneven,true," "));
+				//std::cout<<"out inner"<<std::endl;
+				return contract_quickbb(lat, new_part, absorb_fun, contract_fun);
 
 			}
 
 		} else {
+			//std::cout<<"out inner"<<std::endl;
 			return contract_quickbb(lat, part, absorb_fun, contract_fun);
 		}
 	}
-
-	// template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
-	// NodeKey Engine::inner_contract(
-	// 		network<NodeVal, int, NodeKey, EdgeKey, Trait> & lat,
-	// 		const std::set<NodeKey, typename Trait::nodekey_less> & part,
-	// 		const absorb_type & absorb_fun,
-	// 		const contract_type & contract_fun) {
-
-	// 	NodeKey contract_res1,contract_res2;
-	// 	network<NodeVal, int, NodeKey, EdgeKey, Trait>  temp1 = lat;
-	// 	network<NodeVal, int, NodeKey, EdgeKey, Trait>  temp2 = lat;
-
-	// 	if (part.size() > max_quickbb_size) {
-	// 		//std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide(lat, part);
-	// 		std::vector<std::set<NodeKey, typename Trait::nodekey_less>> subparts = divide_kahypar(temp1, part);
-	// 		std::set<NodeKey, typename Trait::nodekey_less> new_part;
-	// 		for (auto & p : subparts)
-	// 			new_part.insert(inner_contract(temp1, p, absorb_fun, contract_fun));
-	// 		contract_res1=inner_contract(temp1, new_part, absorb_fun, contract_fun);
-	// 		//std::cout<<"<contract_chose\n"<<temp2.size();
-	// 		contract_res2=contract_quickbb(temp2, part, absorb_fun, contract_fun);
-
-	// 		//std::cout<<"\n"<<std::get<0>(temp1[contract_res1].val)->val.contraction_cost<<' '<<
-	// 		//	std::get<0>(temp2[contract_res2].val)->val.contraction_cost<<"\n"<<part.size()<<"\ncontract_chose>\n";
-
-	// 		if(std::get<0>(temp1[contract_res1].val)->val.contraction_cost < std::get<0>(temp2[contract_res2].val)->val.contraction_cost){
-	// 			lat=temp1;
-	// 			return contract_res1;
-	// 		}else{
-	// 			lat=temp2;
-	// 			return contract_res2;
-	// 		}
-	// 		// for(auto & p:subparts)
-	// 		// 	new_part.insert(contract_quickbb<contract_type>(lat,p));
-	// 		// return contract_quickbb<contract_type>(lat,new_part);
-	// 	} else {
-	// 		return contract_quickbb(lat, part, absorb_fun, contract_fun);
-	// 	}
-	// }
 
 	// find neighbor with least contraction count of a node within given part
 	// EdgeVal = int
@@ -442,30 +395,28 @@ namespace net {
 
 	template <typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	std::vector<std::set<NodeKey, typename Trait::nodekey_less>>
-	Engine::divide_kahypar(network<NodeVal, int, NodeKey, EdgeKey, Trait> & lat, const std::set<NodeKey, typename Trait::nodekey_less> & part, double uneven) {
+	Engine::divide_kahypar(network<NodeVal, int, NodeKey, EdgeKey, Trait> & lat, const std::set<NodeKey, typename Trait::nodekey_less> & part, double uneven, bool & failed) {
 
-		const kahypar_hypernode_id_t num_vertices = part.size();
-		kahypar_hyperedge_id_t num_hyperedges = 0;
+		const unsigned int num_vertices = part.size();
+		unsigned int num_hyperedges = 0;
 
-		std::vector<kahypar_hyperedge_weight_t> hyperedge_weights; // weight of edge
+		std::vector<int> hyperedge_weights; // weight of edge
 
 		std::vector<size_t> hyperedge_indices; // start and end of vertice list for each edge
 
-		std::vector<kahypar_hyperedge_id_t> hyperedges; // vertice list
+		std::vector<unsigned int> hyperedges; // vertice list
 
 		std::set<NodeKey, typename Trait::nodekey_less> treated_nodes;
 
 		std::map<NodeKey,int, typename Trait::nodekey_less> site_id_map;
 		std::vector<NodeKey> inv_site_id_map;
 
-		//std::cout<<"in3\n";
 		int site_id=0;
 		for (auto & p : part){
 			inv_site_id_map.push_back(p);
 			site_id_map[p] = site_id++;
 		}
 
-		//std::cout<<"in4\n";
 		int edge_id=0;
 		hyperedge_indices.push_back(0);
 		for (auto & s_it : lat) {
@@ -474,34 +425,27 @@ namespace net {
 				auto & nodekey2 = b_it.second.nbkey;
 				if (treated_nodes.count(nodekey2) == 0) {
 					if (part.count(nodekey1) == 1 && part.count(nodekey2) == 1){
-		//std::cout<<"in5\n";
 						hyperedge_weights.push_back(std::log10(double(b_it.second.val))*40);
-						// fail if not *10. maybe too small. demand double check.
-
-		//std::cout<<"in6\n";
+						// weight is int so we *40
 						hyperedge_indices.push_back(2*(edge_id+1));
-		//std::cout<<"in7\n";
 						hyperedges.push_back(site_id_map[nodekey1]);
 						hyperedges.push_back(site_id_map[nodekey2]);
 						edge_id++;
 						num_hyperedges++;
-		//std::cout<<"in8\n";
 					}
 				}
 			}
 			treated_nodes.insert(nodekey1);
 		}
-
-		//std::cout<<"in5\n";
 			
 		const double imbalance = uneven;
-		const kahypar_partition_id_t k = 2;
+		const int k = 2;
 			
-		kahypar_hyperedge_weight_t objective = 0;
+		int objective = 0;
 
-		std::vector<kahypar_partition_id_t> partition(num_vertices, -1);
+		std::vector<int> partition(num_vertices, -1);
 
-#ifdef USE_LIB_KAHYPAR
+#ifdef NET_USE_LIB_KAHYPAR
 		kahypar_context_t* context = kahypar_context_new();
 		kahypar_configure_context_from_file(context, "km1_kKaHyPar_sea20.ini");
 		kahypar_partition(num_vertices, num_hyperedges,
@@ -511,7 +455,7 @@ namespace net {
 		   	            &objective, context, partition.data());
 		kahypar_context_free(context);
 #else
-		kahypar::Context& context;
+		kahypar::Context context;
 		kahypar::parseIniToContext(context,"km1_kKaHyPar_sea20.ini");
 		ASSERT(!context.partition.use_individual_part_weights ||
 		     !context.partition.max_part_weights.empty());
@@ -537,7 +481,7 @@ namespace net {
 
 		kahypar::PartitionerFacade().partition(hypergraph, context);
 
-		*objective = kahypar::metrics::correctMetric(hypergraph, context);
+		objective = kahypar::metrics::correctMetric(hypergraph, context);
 
 		for (const auto hn : hypergraph.nodes()) {
 			partition[hn] = hypergraph.partID(hn);
@@ -557,9 +501,33 @@ namespace net {
 		//std::cout<<"part\n";
 		//for(auto &p :part)
 		//	std::cout<<p<<'\n';
+		std::vector<std::set<NodeKey, typename Trait::nodekey_less>> disc_result=disconnect(lat, part, results);
+
+		failed=(disc_result.size()==1);
+		if(failed){ // there's chance that kahypar fails when epsilon ~ 1
+			NodeKey max_key;
+			int this_weight;
+			int max_weight=-1;
+			for(auto & p:part){
+				this_weight=1;
+				for (auto & eg : lat[p].edges)
+					if (part.count(eg.second.nbkey) > 0)
+						this_weight *= eg.second.val;
+				if(max_weight<0 || this_weight>max_weight){
+					max_weight=this_weight;
+					max_key=p;
+				}
+			}
+			disc_result[0].erase(max_key);
+			disc_result.push_back({max_key});
+		}
+					// std::cout<<"root ";
+					// for (auto & p : results)
+					// 	std::cout<<' '<<p.size();
+					// std::cout<<std::endl;
 
 		//return results;
-		return disconnect(lat, part, results);
+		return disc_result;
 	}
 
 	template <typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
