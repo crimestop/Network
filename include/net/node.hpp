@@ -18,30 +18,48 @@ namespace net {
 	std::string to_string(const T & m);
 
 	/**
-	 * \brief 描述着连接格点的边上信息，实际上这是一个半边而不是是一个完整的边
+	 * \brief 描述着连接格点的脚链接的边
 	 *
 	 * \see node
+	 * \see edge
+	 */
+	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
+	struct index {
+		/**
+		 * \brief 所链接的边
+		 */
+		std::shared_ptr<edge<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>> edge；
+		/**
+		 * \brief 边里的iterator
+		 */
+		typename std::map<EdgeKey,typename network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::IterNode, typename Trait::edgekey_less>::iterator inditr;
+
+		edge() = default;
+		edge(const NodeKey & s1, const EdgeKey & s2, typename network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::IterNode s) :
+				nbkey(s1), nbind(s2), nbitr(s){};
+		edge(const NodeKey & s1, const EdgeKey & s2, typename network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::IterNode s, const EdgeVal & E) :
+				nbkey(s1), nbind(s2), nbitr(s), val(E){};
+		edge(const NodeKey & s1, const EdgeKey & s2, const EdgeVal & E) : nbkey(s1), nbind(s2), val(E){};
+		edge(const edge<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait> &) = default;
+	};
+
+	/**
+	 * \brief 描述着一个边
+	 *
+	 * \see node
+	 * \see index
 	 */
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	struct edge {
+
 		/**
-		 * \brief 所指向的格点的名称
+		 * \brief 边所包含的脚
 		 */
-		NodeKey nbkey;
-		/**
-		 * \brief 所指向格点连接自身的边的名称
-		 */
-		EdgeKey nbind;
-		/**
-		 * \brief 所指向的格点的指针
-		 */
-		typename network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::IterNode nbitr;
+		std::map<EdgeKey,typename network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::IterNode, typename Trait::edgekey_less> inds;
 		/**
 		 * \brief 边上的附着信息
 		 */
 		EdgeVal val;
-
-		typename std::map<EdgeKey, edge<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>, typename Trait::edgekey_less>::iterator nbegitr;
 
 		edge() = default;
 		edge(const NodeKey & s1, const EdgeKey & s2, typename network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::IterNode s) :
@@ -162,7 +180,7 @@ namespace net {
 		 * \brief 格点所相连的边, 存储了另一测的指针等信息
 		 * \see edge
 		 */
-		std::map<EdgeKey, edge<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>, typename Trait::edgekey_less> edges;
+		std::map<EdgeKey, index<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>, typename Trait::edgekey_less> edges;
 	};
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
