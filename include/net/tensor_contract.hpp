@@ -402,13 +402,15 @@ namespace net {
 
 		std::vector<int> hyperedge_weights; // weight of edge
 
+		std::vector<int> hypernode_weights(part.size(),0); // weight of node
+
 		std::vector<size_t> hyperedge_indices; // start and end of vertice list for each edge
 
 		std::vector<unsigned int> hyperedges; // vertice list
 
 		std::set<NodeKey, typename Trait::nodekey_less> treated_nodes;
 
-		std::map<NodeKey,int, typename Trait::nodekey_less> site_id_map;
+		std::map<NodeKey,int, typename Trait::nodekey_less> site_id_map; // node key from str to int
 		std::vector<NodeKey> inv_site_id_map;
 
 		int site_id=0;
@@ -421,24 +423,27 @@ namespace net {
 		hyperedge_indices.push_back(0);
 		for (auto & s_it : lat) {
 			auto & nodekey1 = s_it.first;
-			for (auto & b_it : s_it.second.edges) {
-				auto & nodekey2 = b_it.second.nbkey;
-				if (treated_nodes.count(nodekey2) == 0) {
-					if (part.count(nodekey1) == 1 && part.count(nodekey2) == 1){
-						hyperedge_weights.push_back(std::log10(double(b_it.second.val))*40);
-						// weight is int so we *40
-						hyperedge_indices.push_back(2*(edge_id+1));
-						hyperedges.push_back(site_id_map[nodekey1]);
-						hyperedges.push_back(site_id_map[nodekey2]);
-						edge_id++;
-						num_hyperedges++;
-					}
+			if (part.count(nodekey1) == 1){
+				for (auto & b_it : s_it.second.edges) {
+					auto & nodekey2 = b_it.second.nbkey;
+					if (part.count(nodekey2) == 1){
+						hypernode_weights[site_id_map[nodekey1]] += std::log10(double(b_it.second.val))*40;
+						if(treated_nodes.count(nodekey2) == 0){
+							hyperedge_weights.push_back(std::log10(double(b_it.second.val))*40);
+							// weight is int so we *40
+							hyperedge_indices.push_back(2*(edge_id+1));
+							hyperedges.push_back(site_id_map[nodekey1]);
+							hyperedges.push_back(site_id_map[nodekey2]);
+							edge_id++;
+							num_hyperedges++;
+						}
+					}else
+						hypernode_weights[site_id_map[nodekey1]] += std::log10(double(b_it.second.val))*40;
 				}
+				treated_nodes.insert(nodekey1);
 			}
-			treated_nodes.insert(nodekey1);
 		}
 			
-		const double imbalance = uneven;
 		const int k = 2;
 			
 		int objective = 0;
@@ -449,8 +454,8 @@ namespace net {
 		kahypar_context_t* context = kahypar_context_new();
 		kahypar_configure_context_from_file(context, "km1_kKaHyPar_sea20.ini");
 		kahypar_partition(num_vertices, num_hyperedges,
-		   	            imbalance, k,
-		           	    /*vertex_weights */ nullptr, hyperedge_weights.data(),
+		   	            uneven, k,
+		           	    hypernode_weights.data(), hyperedge_weights.data(),
 		           	    hyperedge_indices.data(), hyperedges.data(),
 		   	            &objective, context, partition.data());
 		kahypar_context_free(context);
@@ -462,7 +467,7 @@ namespace net {
 		ASSERT(partition != nullptr);
 
 		context.partition.k = k;
-		context.partition.epsilon = imbalance;
+		context.partition.epsilon = uneven;
 		context.partition.write_partition_file = false;
 
 		kahypar::Hypergraph hypergraph(num_vertices,
@@ -471,7 +476,7 @@ namespace net {
 		                             hyperedges.data(),
 		                             context.partition.k,
 		                             hyperedge_weights.data(),
-		                             /*vertex_weights */ nullptr);
+		                             hypernode_weights.data());
 
 		if (context.partition.vcycle_refinement_for_input_partition) {
 			for (const auto hn : hypergraph.nodes()) {

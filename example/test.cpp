@@ -30,18 +30,6 @@ std::string str(int p){
 //#define str std::to_string
 int main(){
 
-	// test_kahypar();
-	// return 0;
-
-	// net::tree<std::set<std::string>> tree1({"A"});
-	// net::tree<std::set<std::string>> tree2({"B"});
-
-	// net::tree<std::set<std::string>> * tree3= net::Tree_combine<set_contract>::run(&tree1,&tree2,1);
-	// //net::tree<std::set<std::string>> * tree3= new net::tree<std::set<std::string>>(set_contract::run(tree1.val,tree2.val),&tree1,&tree2);
-
-	// for(auto & i: tree3->val ) std::cout<<i<<" **************\n";
-	// 	std::cout<<"finish **************\n";
-
 	int L1=24,L2=24,dim=4;
 
 	using namespace std::placeholders;
@@ -51,7 +39,7 @@ int main(){
 
 
 	net::tensor::TensorNetworkNoEnv<double> lat2;
-	for(int i=0;i<40;++i){
+	for(int i=0;i<200;++i){
 		lat2.add("ten"+str(i));
 	}
 	generate_random_regular_network(lat2,5,random_engine);
@@ -77,12 +65,6 @@ int main(){
 	// 		lat2.set_edge("ten"+str(i)+"_"+str(j),"ten"+str(i+1)+"_"+str(j));
 	// 	}
 	// }
-
-	// std::tuple<net::tensor::Tensor<double>,int,int> transform(const net::tensor::Tensor<double> & ten){
-	// 	return std::make_tuple(ten,0,0);
-	// }
-
-	//lat2.draw(true);
 
 	lat2.init_nodes(std::bind(net::tensor::init_node_rand<net::stdEdgeKey>, _1,dim,-1.,1.,std::ref(random_engine)));
 
