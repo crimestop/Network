@@ -39,7 +39,7 @@ int main(){
 
 
 	net::tensor::TensorNetworkNoEnv<double> lat2;
-	for(int i=0;i<200;++i){
+	for(int i=0;i<40;++i){
 		lat2.add("ten"+str(i));
 	}
 	generate_random_regular_network(lat2,5,random_engine);
