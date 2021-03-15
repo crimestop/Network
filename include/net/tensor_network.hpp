@@ -236,7 +236,6 @@ namespace net {
 			Engine eg;
 			auto ctree = get_contract_tree_qbb<keyset>(n, eg);
 			result = n.template contract_tree(ctree, no_absorb(), contract());
-			delete ctree;
 			return result;
 		}
 

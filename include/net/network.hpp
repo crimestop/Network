@@ -12,6 +12,7 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -266,7 +267,14 @@ namespace net {
 		NodeVal contract(std::set<NodeKey, typename Trait::nodekey_less>, const absorb_type &, const contract_type &) const;
 
 		template <typename TreeType, typename absorb_type, typename contract_type>
-		NodeVal contract_tree(TreeType *, const absorb_type &, const contract_type &) const;
+		NodeVal contract_tree(std::shared_ptr<TreeType>, const absorb_type &, const contract_type &) const;
+
+
+		template <typename absorb_type, typename contract_type>
+		NodeKey absorb(std::set<NodeKey, typename Trait::nodekey_less>, const absorb_type &, const contract_type &);
+
+		template <typename TreeType, typename absorb_type, typename contract_type>
+		NodeKey absorb_tree(std::shared_ptr<TreeType>, const absorb_type &, const contract_type &);
 		/**
 		 * \brief 缩并的辅助函数
 		 */
@@ -694,6 +702,52 @@ namespace net {
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	template <typename absorb_type, typename contract_type>
+	NodeKey network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::absorb(
+			std::set<NodeKey, typename Trait::nodekey_less> part,
+			const absorb_type & absorb_fun,
+			const contract_type & contract_fun) {
+		if(part.size()==0){
+			return NodeKey();
+		}else{
+			auto it0=part.begin();
+			for(auto it =part.begin();it!=part.end();++it){
+				if(it!=it0) absorb(*it0,*it,absorb_fun,contract_fun);
+			}
+			return *it0;
+		}
+	}
+
+	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
+	template <typename TreeType, typename absorb_type, typename contract_type>
+	NodeKey network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::absorb_tree(
+			std::shared_ptr<TreeType> ctree,
+			const absorb_type & absorb_fun,
+			const contract_type & contract_fun) {
+		if (!ctree)
+			return NodeKey();
+		else if (!ctree->left_child && !ctree->right_child)
+			return absorb(ctree->val.node_set, absorb_fun, contract_fun);
+		else if (!ctree->left_child && ctree->right_child)
+			return absorb_tree<TreeType>(ctree->right_child, absorb_fun, contract_fun);
+		else if (ctree->left_child && !ctree->right_child)
+			return absorb_tree<TreeType>(ctree->left_child, absorb_fun, contract_fun);
+		else{
+			NodeKey left = absorb_tree<TreeType>(ctree->left_child, absorb_fun, contract_fun);
+			NodeKey right = absorb_tree<TreeType>(ctree->right_child, absorb_fun, contract_fun);
+			if(left == NodeKey()){
+				return right;
+			}else if(right == NodeKey()){
+				return left;
+			}else{
+				absorb(left,right, absorb_fun, contract_fun);
+				return left;
+			}
+
+		}
+	}
+
+	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
+	template <typename absorb_type, typename contract_type>
 	NodeVal network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::contract(
 			std::set<NodeKey, typename Trait::nodekey_less> part,
 			const absorb_type & absorb_fun,
@@ -712,16 +766,16 @@ namespace net {
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	template <typename TreeType, typename absorb_type, typename contract_type>
 	NodeVal network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::contract_tree(
-			TreeType * ctree,
+			std::shared_ptr<TreeType> ctree,
 			const absorb_type & absorb_fun,
 			const contract_type & contract_fun) const {
-		if (ctree == nullptr)
+		if (!ctree)
 			return NodeVal();
-		else if (ctree->left_child == nullptr && ctree->right_child == nullptr)
+		else if (!ctree->left_child && !ctree->right_child)
 			return contract(ctree->val.node_set, absorb_fun, contract_fun);
-		else if (ctree->left_child == nullptr && ctree->right_child != nullptr)
+		else if (!ctree->left_child && ctree->right_child)
 			return contract_tree<TreeType>(ctree->right_child, absorb_fun, contract_fun);
-		else if (ctree->left_child != nullptr && ctree->right_child == nullptr)
+		else if (ctree->left_child && !ctree->right_child)
 			return contract_tree<TreeType>(ctree->left_child, absorb_fun, contract_fun);
 		else
 			return tn_contract2(

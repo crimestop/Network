@@ -27,6 +27,25 @@ std::string str(int p){
 	return os.str();
 }
 
+void test_all_combination(){
+
+	net::all_combination ac(8);
+	std::set<int> eight;
+	for(int i=0;i<8;++i) eight.insert(i);
+	for(int s=0; s<=8;++s){
+		std::cout<<"break in to "<<s<<" and "<<(8-s)<<'\n';
+		int j=0;
+		for(ac.begin(s);!ac.finish;ac.next()){
+			auto [P,N] = ac.generate(eight);
+			std::cout<<j++<<"\n [ ";
+			for(auto & p: P) std::cout<<p<<' ';
+			std::cout<<"]\n [ ";
+			for(auto & n: N) std::cout<<n<<' ';
+			std::cout<<"]\n";
+		}
+	}
+
+}
 //#define str std::to_string
 int main(){
 

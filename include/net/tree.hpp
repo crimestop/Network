@@ -1,81 +1,76 @@
 #ifndef NET_TREE_HPP
 #define NET_TREE_HPP
 #include "gviz_themes.hpp"
+#include <memory>
 
 namespace net {
 
 	template <typename Data>
 	struct tree {
+		using DataType=Data;
+
 		Data val;
-		// tree<Data> * parent=nullptr;
-		tree<Data> * left_child = nullptr;
-		tree<Data> * right_child = nullptr;
+
+		std::shared_ptr<tree<Data>> left_child;
+		std::shared_ptr<tree<Data>> right_child;
 
 		tree() = default;
 		tree(const Data & D) : val(D){};
-		tree(const Data & D, tree<Data> * Tree1, tree<Data> * Tree2) : val(D), left_child(Tree1), right_child(Tree2){};
+		tree(const Data & D, std::shared_ptr<tree<Data>> Tree1, std::shared_ptr<tree<Data>> Tree2) : val(D), left_child(Tree1), right_child(Tree2){};
 		tree(const tree<Data> &) = default;
-		~tree();
+		~tree() = default;
 
-		std::string gviz();
+		std::string gviz() const;
 #ifdef NET_GRAPH_VIZ
 		void draw();
 #endif
 	};
 
-	template <typename Data>
-	tree<Data>::~tree() {
-		if (left_child != nullptr)
-			delete left_child;
-		if (right_child != nullptr)
-			delete right_child;
-	}
-
 	template <typename contract_type>
 	struct Tree_combine {
 		template <typename Data, typename NoUse>
-		tree<Data> * operator()(tree<Data> * const & a, tree<Data> * const & b, const NoUse & c) const {
-			return new tree<Data>(contract_type::contract(a->val, b->val), a, b);
+		std::shared_ptr<tree<Data>> operator()(std::shared_ptr<tree<Data>> const & a, std::shared_ptr<tree<Data>> const & b, const NoUse & c) const {
+			return std::make_shared<tree<Data>>(contract_type::contract(a->val, b->val), a, b);
 		}
 	};
 
 	template <typename absorb_type>
 	struct Tree_act {
 		template <typename Data, typename Data2, typename NoUse>
-		tree<Data> * operator()(tree<Data> * const & a, const Data2 & b, const NoUse & c) const {
+		std::shared_ptr<tree<Data>> operator()(std::shared_ptr<tree<Data>> const & a, const Data2 & b, const NoUse & c) const {
 			a->val = absorb_type::absorb(a->val, b);
 			return a;
 		}
 	};
 
 	template <typename Data>
-	void gviz_nodes(tree<Data> * node, std::ostream & dot_content, const std::string & nodename) {
-		std::string nodelable = node->val.show();
-		if (node->left_child == nullptr && node->right_child == nullptr){
+	void gviz_nodes(const tree<Data> & node, std::ostream & dot_content, const std::string & nodename) {
+		std::string nodelable = node.val.show();
+		if (node.left_child && node.right_child){
 			nodelable += "\nN ";
-			for (auto & s : node->val.node_set) {
+			for (auto & s : node.val.node_set) {
 				nodelable += s;
 			}
 		}
 		dot_content << "  " << nodename << " [ color=" << gviz_theme["node_strokecolor"] << ", label = \"" << nodelable
 						<< "\", fontcolor=" << gviz_theme["node_fontcolor"] << ", fontname=" << gviz_theme["node_fontname"] << "];\n";
 
-		if (node->left_child != nullptr) {
+		if (node.left_child) {
 			dot_content << "  " << nodename << " -> " << nodename << "l"
 							<< " [fontcolor=" << gviz_theme["edge_fontcolor"] << ", fontname=" << gviz_theme["edge_fontname"]
 							<< ", color=" << gviz_theme["edge_strokecolor"] << "];\n";
-			gviz_nodes<Data>(node->left_child, dot_content, nodename + 'l');
+			gviz_nodes<Data>(*(node.left_child), dot_content, nodename + 'l');
 		}
-		if (node->right_child != nullptr) {
+		if (node.right_child) {
 			dot_content << "  " << nodename << " -> " << nodename << "r"
 							<< " [fontcolor=" << gviz_theme["edge_fontcolor"] << ", fontname=" << gviz_theme["edge_fontname"]
 							<< ", color=" << gviz_theme["edge_strokecolor"] << "];\n";
-			gviz_nodes<Data>(node->right_child, dot_content, nodename + 'r');
+			gviz_nodes<Data>(*(node.right_child), dot_content, nodename + 'r');
 		}
 	}
 
 	template <typename Data>
-	std::string tree<Data>::gviz() {
+	std::string tree<Data>::gviz() const {
 		std::stringstream dot_content;
 		std::string grp;
 
@@ -89,7 +84,7 @@ namespace net {
 
 		std::string nodename = "t";
 
-		gviz_nodes<Data>(this, dot_content, nodename);
+		gviz_nodes<Data>(*this, dot_content, nodename);
 
 		dot_content << "}\n";
 

@@ -39,6 +39,7 @@ namespace net {
 		void belong(network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait> &);
 		template <typename absorb_type, typename contract_type>
 		void absorb(const NodeKey &, const absorb_type &, const contract_type &);
+		void take(const NodeKey &);
 		void draw(const bool);
 		const NodeVal & get_val();
 
@@ -63,6 +64,12 @@ namespace net {
 	}
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
+	void
+	group<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::take(const NodeKey & key) {
+		contains.insert(key);
+	}
+
+	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	template <typename absorb_type, typename contract_type>
 	void
 	group<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::absorb(const NodeKey & key, const absorb_type & absorb_fun, const contract_type & contract_fun) {
@@ -70,17 +77,18 @@ namespace net {
 		contains.insert(key);
 	}
 
-	template <typename absorb_type, typename contract_type, typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
+	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait, typename absorb_type, typename contract_type>
 	group<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait> contract(
 			group<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait> & G1,
 			group<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait> & G2,
 			const absorb_type & absorb_fun,
 			const contract_type & contract_fun) {
-		group<NodeVal, EdgeVal, NodeKey, EdgeKey> G3;
+		group<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait> G3;
 		G3.net = G1.net;
 		G3.contains = G1.contains;
-		G3.insert(G2.begin(), G2.end());
-		G3.ten = G3.net->template tn_contract2(G1.contains, G1.val, G2.contains, G2.val, absorb_fun, contract_fun);
+		G3.contains.insert(G2.contains.begin(), G2.contains.end());
+		G3.val = G3.net->template tn_contract2(G1.contains, G1.val, G2.contains, G2.val, absorb_fun, contract_fun);
+		return G3;
 	}
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>

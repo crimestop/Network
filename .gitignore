@@ -14,4 +14,5 @@ index.md
 !/example/*.hpp
 !/example/*.h
 !/example/makefile
+!/example/km1_kKaHyPar_sea20.ini
 *.sublime*
