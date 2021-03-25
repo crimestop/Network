@@ -216,26 +216,26 @@ namespace net {
 		/**
 		 * \brief 画出网络的图并输出到文件
 		 */
-		void draw_to_file(const std::string &, const std::string &, const bool);
+		void draw_to_file(const std::string &, const std::string &, const bool) const;
 		/**
 		 * \brief 画出网络的图并输出到文件，强调网络的一部分
 		 */
-		void draw_to_file(const std::string &, const std::string &, const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> &, const bool);
+		void draw_to_file(const std::string &, const std::string &, const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> &, const bool) const;
 		/**
 		 * \brief 画出网络的图并输出
 		 */
-		void draw(const std::string &, const bool);
+		void draw(const std::string &, const bool) const;
 		/**
 		 * \brief 画出网络的图并输出，强调网络的一部分
 		 */
-		void draw(const std::string &, const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> &, const bool);
+		void draw(const std::string &, const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> &, const bool) const;
 #endif
 		/**
 		 * \brief 将网络转化为graphviz格式的字符串
 		 */
-		std::string gviz(const std::string &, const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> &, const bool);
+		std::string gviz(const std::string &, const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> &, const bool) const;
 
-		std::string gviz_legend(const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> &);
+		std::string gviz_legend(const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> &) const;
 		/**
 		 * \brief 判断网络是否包含一个格点
 		 */
@@ -244,8 +244,8 @@ namespace net {
 		/**
 		 * \brief 判断网络是否是没有冲突
 		 */
-		bool consistency();
-		bool consistency(std::ostream & diagnosis);
+		bool consistency() const;
+		bool consistency(std::ostream & diagnosis) const;
 
 		/**
 		 * \brief 初始化网络的格点的信息
@@ -906,12 +906,12 @@ namespace net {
 	}
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
-	bool network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::consistency() {
+	bool network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::consistency() const {
 		return consistency(std::cout);
 	}
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
-	bool network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::consistency(std::ostream & diagnosis) {
+	bool network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::consistency(std::ostream & diagnosis) const {
 		for (auto & s : *this)
 			if (!s.second.consistency(*this, diagnosis)) {
 				diagnosis << "Error at node " << s.first << '\n';

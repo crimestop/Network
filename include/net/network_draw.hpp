@@ -34,7 +34,7 @@ namespace net {
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	void
-	network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::draw_to_file(const std::string & filename, const std::string & title, const bool label_bond) {
+	network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::draw_to_file(const std::string & filename, const std::string & title, const bool label_bond) const {
 		draw(filename, {{}}, label_bond);
 	}
 
@@ -43,7 +43,7 @@ namespace net {
 			const std::string & filename,
 			const std::string & title,
 			const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> & contains,
-			const bool label_bond) {
+			const bool label_bond) const {
 		std::ofstream fig_file(filename, std::ios::binary);
 		if (this->size() > 0)
 			fig_file << render(gviz(contains, label_bond), "sfdp");
@@ -67,7 +67,7 @@ namespace net {
 	}
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
-	void network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::draw(const std::string & title, const bool label_bond) {
+	void network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::draw(const std::string & title, const bool label_bond) const {
 		draw(title, {{}}, label_bond);
 	}
 
@@ -75,7 +75,7 @@ namespace net {
 	void network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::draw(
 			const std::string & title,
 			const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> & contains,
-			const bool label_bond) {
+			const bool label_bond) const {
 		consistency();
 		if (this->size() == 0) {
 			std::cout << "-----------------------------------------------\n";

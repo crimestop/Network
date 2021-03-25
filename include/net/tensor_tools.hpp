@@ -73,7 +73,7 @@ namespace net {
 			}
 			Tensor<T, EdgeKey> result(newname, newdims);
 			for (int i = 0; i < newsize; ++i) {
-				result.block()[i] = ten2.block()[i * (newsize + 1)];
+				result.block()[i] = ten2.const_block()[i * (newsize + 1)];
 			}
 			return result;
 		}

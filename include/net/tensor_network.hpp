@@ -234,7 +234,7 @@ namespace net {
 		typename Network::NodeValType contract_quickbb(const Network & n) {
 			typename Network::NodeValType result;
 			Engine eg;
-			auto ctree = get_contract_tree_qbb<keyset>(n, eg);
+			auto ctree = get_contract_tree_qbb<contract_info2>(n, eg);
 			result = n.template contract_tree(ctree, no_absorb(), contract());
 			return result;
 		}

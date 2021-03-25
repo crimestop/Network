@@ -126,7 +126,7 @@ namespace net {
 
 		void relink(std::map<NodeKey, node<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>, typename Trait::nodekey_less> &);
 
-		bool consistency(const std::map<NodeKey, node<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>, typename Trait::nodekey_less> &, std::ostream &);
+		bool consistency(const std::map<NodeKey, node<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>, typename Trait::nodekey_less> &, std::ostream &)const;
 
 		void fope(std::function<NodeVal(const NodeVal &)> f1, std::function<EdgeVal(const EdgeVal &)> f2);
 
@@ -396,7 +396,7 @@ namespace net {
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	bool node<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::consistency(
 			const std::map<NodeKey, node<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>, typename Trait::nodekey_less> & nodes,
-			std::ostream & diagnosis) {
+			std::ostream & diagnosis) const {
 		for (auto & b : edges) { // check if b is consistent
 			if (nodes.count(b.second.nbkey) == 0) {
 				diagnosis << "Network is not consistent, neighbor " + to_string(b.second.nbkey) + " is not found!\n";

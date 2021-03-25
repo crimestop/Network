@@ -50,7 +50,10 @@ namespace net {
 		int coarse_grain_to = 800;
 		int cut_part = 2;
 		int refine_sweep = 10000;
-		int max_quickbb_size = 13;
+		int max_quickbb_size = 20;
+		bool rec_partition=false;
+		std::string small_part_method="quickbb";
+
 		//double uneven = 0.2;
 		std::default_random_engine rand = std::default_random_engine(0);
 		// std::default_random_engine
@@ -65,6 +68,13 @@ namespace net {
 	private:
 		template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 		NodeKey inner_contract(
+				network<NodeVal, int, NodeKey, EdgeKey, Trait> &,
+				const std::set<NodeKey, typename Trait::nodekey_less> &,
+				const absorb_type &,
+				const contract_type &);
+
+		template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
+		NodeKey connected_inner_contract(
 				network<NodeVal, int, NodeKey, EdgeKey, Trait> &,
 				const std::set<NodeKey, typename Trait::nodekey_less> &,
 				const absorb_type &,
@@ -138,7 +148,7 @@ namespace net {
 		network<std::tuple<NodeVal, int, net::rational>, int, NodeKey, EdgeKey, Trait> temp;
 		temp = lat.template fmap<decltype(temp)>(
 				[](const NodeVal & ten) { return std::make_tuple(ten, 0, net::rational(0, 1)); }, [](const int & m) { return m; });
-		std::string final_site = inner_contract(temp, part, lift_absorb(absorb_fun), lift_contract(contract_fun),0.,false," ");
+		std::string final_site = inner_contract(temp, part, lift_absorb(absorb_fun), lift_contract(contract_fun));
 		return std::get<0>(temp[final_site].val);
 	}
 	template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
@@ -147,11 +157,11 @@ namespace net {
 			const std::set<NodeKey, typename Trait::nodekey_less> & part,
 			const absorb_type & absorb_fun,
 			const contract_type & contract_fun) {
-		network<std::tuple<NodeVal, int, net::rational>, int, NodeKey, EdgeKey, Trait> temp;
-		temp = lat.template fmap<decltype(temp)>(
-				[](const NodeVal & ten) { return std::make_tuple(ten, 0, net::rational(0, 1)); }, [](const int & m) { return m; });
-		std::string final_site = contract_quickbb(temp, part, lift_absorb(absorb_fun), lift_contract(contract_fun));
-		return std::get<0>(temp[final_site].val);
+		auto temp_max_quickbb_size=max_quickbb_size;
+		max_quickbb_size=lat.size();
+		auto res=contract(lat,part,absorb_fun,contract_fun);
+		max_quickbb_size=temp_max_quickbb_size;
+		return res;
 	}
 	template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	NodeVal Engine::contract_naive(
@@ -170,6 +180,31 @@ namespace net {
 			network<NodeVal, int, NodeKey, EdgeKey, Trait> & lat,
 			const std::set<NodeKey, typename Trait::nodekey_less> & part,
 			const absorb_type & absorb_fun,
+			const contract_type & contract_fun) {
+
+		auto parts=disconnect(lat,part,{part});
+		for(auto & p:parts)
+			connected_inner_contract(lat, p, absorb_fun, contract_fun,0.,false," ");
+		// for(auto & s:lat){
+		// 	std::cout<<s.first<<'\n';
+		// }
+		// 	std::cout<<"---\n";
+		auto s0=lat.begin()->first;
+		std::set<std::string> sites;
+		for(auto & s:lat)
+			if(s.first !=s0)
+				sites.insert(s.first);
+		for(auto & s:sites)
+			lat.absorb(s0,s,absorb_fun, contract_fun);
+		return lat.begin()->first;
+
+	}
+
+	template <typename contract_type, typename absorb_type, typename NodeVal, typename NodeKey, typename EdgeKey, typename Trait>
+	NodeKey Engine::connected_inner_contract(
+			network<NodeVal, int, NodeKey, EdgeKey, Trait> & lat,
+			const std::set<NodeKey, typename Trait::nodekey_less> & part,
+			const absorb_type & absorb_fun,
 			const contract_type & contract_fun,double uneven, bool fix_uneven,std::string log) {
 
 		//std::cout<<"in inner"<<std::endl;
@@ -179,6 +214,7 @@ namespace net {
 		//network<NodeVal, int, NodeKey, EdgeKey, Trait>  temp2 = lat;
 
 		bool failed;
+		//std::cout<<max_quickbb_size<<','<<part.size()<<'\n';
 		if (part.size() > max_quickbb_size) {
 			if(!fix_uneven){
 				min_cost=-1.;
@@ -196,7 +232,7 @@ namespace net {
 					
 					std::set<NodeKey, typename Trait::nodekey_less> new_part;
 					for (auto & p : subparts){
-						new_part.insert(inner_contract(temp, p, absorb_fun, contract_fun,new_eneven,true," "));
+						new_part.insert(connected_inner_contract(temp, p, absorb_fun, contract_fun,new_eneven,true," "));
 					}
 					contract_res=contract_quickbb(temp, new_part, absorb_fun, contract_fun);
 					this_cost=std::get<0>(temp[contract_res].val)->val.contraction_cost;
@@ -212,7 +248,7 @@ namespace net {
 				std::set<NodeKey, typename Trait::nodekey_less> new_part;
 				int sp=0;
 				for (auto & p : subparts){
-					new_part.insert(inner_contract(lat, p, absorb_fun, contract_fun,best_eneven,false,log+std::to_string(sp)));
+					new_part.insert(connected_inner_contract(lat, p, absorb_fun, contract_fun,best_eneven,!rec_partition,log+std::to_string(sp)));
 					sp++;
 				}
 				//std::cout<<"out inner"<<std::endl;
@@ -227,7 +263,7 @@ namespace net {
 					// 	std::cout<<' '<<p.size();
 					// std::cout<<std::endl;
 				for (auto & p : subparts)
-					new_part.insert(inner_contract(lat, p, absorb_fun, contract_fun,uneven,true," "));
+					new_part.insert(connected_inner_contract(lat, p, absorb_fun, contract_fun,uneven,true," "));
 				//std::cout<<"out inner"<<std::endl;
 				return contract_quickbb(lat, new_part, absorb_fun, contract_fun);
 
@@ -235,10 +271,16 @@ namespace net {
 
 		} else {
 			//std::cout<<"out inner"<<std::endl;
-			if(!fix_uneven)
-				return contract_breadth_first(lat, part, absorb_fun, contract_fun);
-			else
+			if(!fix_uneven){
+				if(small_part_method=="exact"){
+					return contract_breadth_first(lat, part, absorb_fun, contract_fun);
+				}
+				else{
+					return contract_quickbb(lat, part, absorb_fun, contract_fun);
+				}
+			}else{
 				return contract_quickbb(lat, part, absorb_fun, contract_fun);
+			}
 		}
 	}
 

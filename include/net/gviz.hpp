@@ -17,7 +17,7 @@ namespace net {
 	std::string network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::gviz(
 			const std::string & title,
 			const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> & groups,
-			const bool label_bond) {
+			const bool label_bond) const {
 		std::stringstream dot_content;
 		std::string grp;
 		std::set<NodeKey, typename Trait::nodekey_less> drawn_nodes;
@@ -77,7 +77,7 @@ namespace net {
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
 	std::string
-	network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::gviz_legend(const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> & groups) {
+	network<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait>::gviz_legend(const std::vector<std::set<NodeKey, typename Trait::nodekey_less>> & groups) const {
 		std::stringstream dot_content;
 		std::string grp;
 		std::set<NodeKey, typename Trait::nodekey_less> drawn_nodes;
