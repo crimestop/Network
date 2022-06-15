@@ -7,6 +7,7 @@
 #include "timer.h"
 #include <TAT/TAT.hpp>
 #include <net/net.hpp>
+#include <net/gviz.hpp>
 #include <net/tensor_network.hpp>
 #define str std::to_string
 
@@ -18,16 +19,27 @@ int main(){
 	std::default_random_engine random_engine(seed);
 	timer benchmark;
 
+
+
+
+			// std::vector<std::string> inds{"a","b","c"};
+			// std::vector<unsigned int> dims{1,2,3};
+			// TAT::Tensor<double,TAT::NoSymmetry,std::string> result(inds, {dims.begin(), dims.end()});
+
+
+
+
+
 	lat.add("A");
 	lat.add("B");
 	lat.add("C");
 	lat.add("D");
 	//lat.add("A");
-	lat.set_edge("A","B");
-	lat.set_edge("A","C");
-	lat.set_edge("B","C");
-	lat.set_edge("C","D");
-	//lat.set_edge("A","B","A.B","B.new");
+	lat.add_edge("A","B");
+	lat.add_edge("A","C");
+	lat.add_edge("B","C");
+	lat.add_edge("C","D");
+	//lat.add_edge("A","B","A.B","B.new");
 
 	std::cout<<lat<<std::endl;
 
@@ -50,18 +62,18 @@ int main(){
 		for (int j=0;j<4;++j){
 			//std::cout<<i<<j<<"\n";
 			lat2.add("ten"+str(i)+"_"+str(j));
-			lat2["ten"+str(i)+"_"+str(j)].val=1;
+			//lat2["ten"+str(i)+"_"+str(j)].val=1;
 		}
 	}
 	for(int i=0;i<4;++i){
 		for (int j=0;j<3;++j){
 			//std::cout<<i<<j<<std::endl;
-			lat2.set_edge("ten"+str(i)+"_"+str(j),"ten"+str(i)+"_"+str(j+1));
+			lat2.add_edge("ten"+str(i)+"_"+str(j),"ten"+str(i)+"_"+str(j+1));
 		}
 	}
 	for(int i=0;i<3;++i){
 		for (int j=0;j<4;++j){
-			lat2.set_edge("ten"+str(i)+"_"+str(j),"ten"+str(i+1)+"_"+str(j));
+			lat2.add_edge("ten"+str(i)+"_"+str(j),"ten"+str(i+1)+"_"+str(j));
 		}
 	}
 
@@ -76,7 +88,8 @@ int main(){
 
 	// net::tensor::Tensor<double> testt=test(a);
 
-	lat2.init_nodes(std::bind(net::tensor::init_node_rand<net::stdEdgeKey>, _1,8,-1.,1.,std::ref(random_engine)));
+	lat2.gfope(std::bind(net::tensor::init_node_rand<net::tensor::TensorNetworkEnv<double>>, _1,8,-1.,1.,std::ref(random_engine)),
+		net::tensor::init_edge_null<net::tensor::TensorNetworkEnv<double>>);
 
 	lat2.absorb("ten1_1","ten1_2",net::no_absorb(),net::tensor::contract());
 	benchmark.stop("square");
@@ -89,7 +102,7 @@ int main(){
 
 
 	benchmark.start("contract");
-	double tot = lat2.contract(net::no_absorb(),net::tensor::contract());
+	auto tot = lat2.contract(net::no_absorb(),net::tensor::contract());
 	benchmark.stop("contract");
 	//std::cout<<"here2\n";
 

@@ -148,7 +148,7 @@ namespace net{
 			keys.push_back(s.first);
 		for(auto & e:edges){
 			//std::cout<<e.first<<' '<<e.second<<'\n';
-			N.set_edge(keys[e.first],keys[e.second]);
+			N.add_edge(keys[e.first],keys[e.second]);
 		}
 	}
 

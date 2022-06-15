@@ -32,17 +32,22 @@ namespace net {
 			output_edge_text(os, i.second);
 			os << ' ';
 		}
+		Trait::nodekey_write_text(os, s.key);
 		Trait::nodeval_write_text(os, s.val);
 		return os;
 	}
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
-	std::ostream & output_edge_text(std::ostream & os, const edge<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait> & b) {
-		Trait::nodekey_write_text(os, b.nbkey);
-		os << ' ';
-		Trait::edgekey_write_text(os, b.nbind);
+	std::ostream & output_edge_text(std::ostream & os, const half_edge<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait> & b) {
+		os << b.nb_num;
 		os << ' ';
 		Trait::edgeval_write_text(os, b.val);
+		if( b.nb_num!=0){
+			os << ' ';
+			Trait::nodekey_write_text(os, b.nbkey);
+			os << ' ';
+			Trait::edgekey_write_text(os, b.nbind);
+		}
 		return os;
 	}
 
@@ -71,15 +76,19 @@ namespace net {
 			Trait::edgekey_read_text(is, a);
 			input_edge_text(is, s.edges[a]);
 		}
+		Trait::nodekey_read_text(is, s.key);
 		Trait::nodeval_read_text(is, s.val);
 		return is;
 	}
 
 	template <typename NodeVal, typename EdgeVal, typename NodeKey, typename EdgeKey, typename Trait>
-	std::istream & input_edge_text(std::istream & is, edge<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait> & b) {
-		Trait::nodekey_read_text(is, b.nbkey);
-		Trait::edgekey_read_text(is, b.nbind);
+	std::istream & input_edge_text(std::istream & is, half_edge<NodeVal, EdgeVal, NodeKey, EdgeKey, Trait> & b) {
+		is>>b.nb_num;
 		Trait::edgeval_read_text(is, b.val);
+		if(b.nb_num!=0){
+			Trait::nodekey_read_text(is, b.nbkey);
+			Trait::edgekey_read_text(is, b.nbind);
+		}
 		return is;
 	}
 

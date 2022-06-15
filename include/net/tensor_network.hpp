@@ -2,9 +2,11 @@
 #define NET_TENSOR_NETWORK_HPP
 
 #include "network.hpp"
-#include "tensor_contract.hpp"
+#include "tensor_contract/tensor_contract_engine.hpp"
+#include "tensor_contract/tensor_contract_tools.hpp"
 #include "tensor_tools.hpp"
 #include "traits.hpp"
+#include "tree.hpp"
 #include <TAT/TAT.hpp>
 #include <functional>
 #include <random>
@@ -28,31 +30,38 @@ namespace net {
 		using TensorNetworkNoEnv =
 				network<Tensor<T, EdgeKey>, std::monostate, SiteKey, EdgeKey, default_traits<Tensor<T, EdgeKey>, std::monostate, SiteKey, EdgeKey>>;
 
-		template <typename EdgeKey = stdEdgeKey>
-		Tensor<double, EdgeKey> init_node_rand(
-				const std::vector<EdgeKey> & str_inds,
+		template <typename NetType>
+		typename NetType::NodeValType init_node_rand(
+				const typename NetType::NodeType & this_node,
 				const unsigned int D,
 				const double min,
 				const double max,
 				std::default_random_engine & R) {
 			auto distribution = std::uniform_real_distribution<double>(min, max);
-			std::vector<unsigned int> dims(str_inds.size(), D);
-			Tensor<double, EdgeKey> result(str_inds, {dims.begin(), dims.end()});
+			std::vector<unsigned int> dims(this_node.edges.size(), D);
+			std::vector<typename NetType::EdgeKeyType> inds;
+			for(auto & b: this_node.edges){
+				inds.push_back(b.first);
+			}
+			//typename NetType::NodeValType result(inds, {dims.begin(), dims.end()});
+			typename NetType::NodeValType result(inds,std::vector<TAT::Edge<TAT::NoSymmetry>>(dims.begin(), dims.end()));
 			return result.set([&distribution, &R]() { return distribution(R); });
 		}
 
 		template <typename NetType>
 		typename NetType::NodeValType
-		init_node_rand_phy(const typename NetType::IterNode & itr, const unsigned int D, const unsigned int dphy, std::default_random_engine & R) {
+		init_node_rand_phy(const typename NetType::NodeType & this_node, const unsigned int D, const unsigned int dphy, std::default_random_engine & R) {
 			auto distribution = std::uniform_real_distribution<double>(-1., 1.);
 			std::vector<typename NetType::EdgeKeyType> inds;
-			for (auto & b : itr->second.edges) {
+			for (auto & b : this_node.edges) {
 				inds.push_back(b.first);
 			}
-			std::vector<unsigned int> dims(inds.size(), D);
-			inds.push_back(itr->first + ".phy");
+			std::vector<unsigned int> dims(this_node.edges.size(), D);
+			inds.push_back(this_node.key + ".phy");
 			dims.push_back(dphy);
-			typename NetType::NodeValType result(inds, {dims.begin(), dims.end()});
+			//typename NetType::NodeValType result(inds, {dims.begin(), dims.end()});
+			typename NetType::NodeValType result(inds, std::vector<TAT::Edge<TAT::NoSymmetry>>(dims.begin(), dims.end()));
+
 			if constexpr (std::is_same_v<typename NetType::NodeValType::scalar_t, double>)
 				result.set([&distribution, &R]() { return distribution(R); });
 			else if constexpr (std::is_same_v<typename NetType::NodeValType::scalar_t, std::complex<double>>)
@@ -60,14 +69,22 @@ namespace net {
 			return result;
 		}
 
-		template <typename T, typename EdgeKey = stdEdgeKey>
-		Tensor<T, EdgeKey> init_edge_one(const unsigned int D, const EdgeKey & edge1, const EdgeKey & edge2) {
-			Tensor<T, EdgeKey> result({edge1, edge2}, {D, D});
-			result.zero();
-			for (int i = 0; i < D; ++i) {
-				result.block()[i * (D + 1)] = 1.;
-			}
-			return result;
+		template <typename NetType>
+		typename NetType::EdgeValType init_edge_one(const typename NetType::NodeType & this_node, const typename NetType::EdgeKeyType & edge1, const unsigned int D) {
+			auto egit = this_node.edges.find(edge1);
+			if(egit->second.nb_num!=0){
+				typename NetType::EdgeValType result({edge1, egit->second.nbind}, {D, D});
+				result.zero();
+				for (int i = 0; i < D; ++i) {
+					result.block()[i * (D + 1)] = 1.;
+				}
+				return result;
+			}else 
+				return typename NetType::EdgeValType();
+		}
+		template <typename NetType>
+		typename NetType::EdgeValType init_edge_null(const typename NetType::NodeType & this_node, const typename NetType::EdgeKeyType & edge1) {
+			return typename NetType::EdgeValType();
 		}
 
 		struct default_dec {
@@ -100,6 +117,28 @@ namespace net {
 				ten3 = qr_res.R;
 			}
 		};
+
+		struct auto_qr {
+			template <typename TensorType, typename EdgeKey, typename EdgeKeySet, typename EdgeVal>
+			void operator()(
+					const TensorType & ten1,
+					TensorType & ten2,
+					TensorType & ten3,
+					const EdgeKeySet & inds,
+					const EdgeKey & ind1,
+					const EdgeKey & ind2,
+					EdgeVal & env) const {
+
+
+				auto svd_res = ten1.svd(inds, ind2, ind1,"SVD_U","SVD_V", TAT::RelativeCut(1e-5));
+
+				ten3 = svd_res.U.contract(svd_res.S, {{ind2, "SVD_U"}}).edge_rename({{"SVD_V",ind2}});
+				ten2 = svd_res.V;
+
+				auto final = ten3.contract(ten2,{{ind2,ind1}});
+			}
+		};
+
 
 		struct svd {
 			int Dc = -1;
@@ -200,7 +239,7 @@ namespace net {
 
 		template <typename T>
 		Tensor<T> conjugate_tensor(const Tensor<T> & t) {
-			std::map<std::string, std::string> name_map;
+			std::unordered_map<std::string, std::string> name_map;
 			for (auto & m : t.names) {
 				name_map[m] = conjugate_string(m);
 			}
@@ -229,15 +268,60 @@ namespace net {
 			result.add(t);
 			return result;
 		}
+		template <template <typename> typename TreeVal, typename NetType, typename Engine>
+		std::shared_ptr<net::tree<TreeVal<typename NetType::NodeKeySetType>>> get_contract_tree(const NetType & lat, Engine & eg, const std::string & method) {
+			net::network<std::shared_ptr<net::tree<TreeVal<typename NetType::NodeKeySetType>>>, int, typename NetType::NodeKeyType, typename NetType::EdgeKeyType> temp;
+
+
+			temp = lat.template gfmap<typename decltype(temp)::NodeValType, typename decltype(temp)::EdgeValType, typename decltype(temp)::TraitType>(
+					[](const typename NetType::NodeType & node) {
+						return std::make_shared<net::tree<TreeVal<typename NetType::NodeKeySetType>>>(TreeVal<typename NetType::NodeKeySetType>(node.key, node.val));
+					},
+					[](const typename NetType::NodeType & node1,
+						const typename NetType::EdgeKeyType & ind1) { return net::tensor::get_dim(node1.val, ind1); });
+
+			std::set<std::string> includes;
+			for (auto & n : lat)
+				includes.insert(n.first);
+			if(method=="partition"){
+				return eg.contract_part(
+						temp,
+						includes,
+						net::Tree_act<TreeVal<typename NetType::NodeKeySetType>>(),
+						net::Tree_combine<TreeVal<typename NetType::NodeKeySetType>>());
+			}else if(method=="quickbb"){
+				return eg.contract_qbb(
+						temp,
+						includes,
+						net::Tree_act<TreeVal<typename NetType::NodeKeySetType>>(),
+						net::Tree_combine<TreeVal<typename NetType::NodeKeySetType>>());
+			}else if(method=="exact"){
+				return eg.contract_exact(
+						temp,
+						includes,
+						net::Tree_act<TreeVal<typename NetType::NodeKeySetType>>(),
+						net::Tree_combine<TreeVal<typename NetType::NodeKeySetType>>());
+			}else if(method=="naive"){
+				return eg.contract_naive(
+						temp,
+						includes,
+						net::Tree_act<TreeVal<typename NetType::NodeKeySetType>>(),
+						net::Tree_combine<TreeVal<typename NetType::NodeKeySetType>>());
+			}else{
+				return std::shared_ptr<net::tree<TreeVal<typename NetType::NodeKeySetType>>>(); // null ptr
+			}
+		}
 
 		template <typename Network>
-		typename Network::NodeValType contract_quickbb(const Network & n) {
+		typename Network::NodeValType contract_tn(const Network & n,Engine & eg, const std::string & method) {
 			typename Network::NodeValType result;
-			Engine eg;
-			auto ctree = get_contract_tree_qbb<contract_info2>(n, eg);
+			auto ctree = get_contract_tree<contract_info2>(n, eg,method);
 			result = n.template contract_tree(ctree, no_absorb(), contract());
+
+			//std::cout<<result;
 			return result;
 		}
+
 
 	} // namespace tensor
 } // namespace net

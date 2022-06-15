@@ -49,21 +49,23 @@ namespace net {
 		for (auto & s_it : *this) {
 			auto & nodekey1 = s_it.first;
 			for (auto & b_it : s_it.second.edges) {
-				auto & ind1 = b_it.first;
-				auto & nodekey2 = b_it.second.nbkey;
-				auto & ind2 = b_it.second.nbind;
-				if (drawn_nodes.count(nodekey2) == 0) {
-					grp = "def";
-					for (int i = 0; i < groups.size(); ++i)
-						if (groups[i].count(nodekey1) == 1 && groups[i].count(nodekey2) == 1)
-							grp = std::to_string(i);
-					dot_content << "  " << Trait::nodekey_brief(nodekey1) << " -> " << Trait::nodekey_brief(nodekey2)
-									<< " [fontcolor=" << gviz_theme["group" + grp].value("edge_fontcolor", gviz_theme["edge_fontcolor"])
-									<< ", fontname=" << gviz_theme["group" + grp].value("edge_fontname", gviz_theme["edge_fontname"])
-									<< ", color=" << gviz_theme["group" + grp].value("edge_strokecolor", gviz_theme["edge_strokecolor"]);
-					if (label_bond)
-						dot_content << ", taillabel = \"" << Trait::edgekey_brief(ind1) << "\",headlabel =\"" << Trait::edgekey_brief(ind2) << "\"";
-					dot_content << ", len=10]\n";
+				if(b_it.second.nb_num!=0){
+					auto & ind1 = b_it.first;
+					auto & nodekey2 = b_it.second.nbkey;
+					auto & ind2 = b_it.second.nbind;
+					if (drawn_nodes.count(nodekey2) == 0) {
+						grp = "def";
+						for (int i = 0; i < groups.size(); ++i)
+							if (groups[i].count(nodekey1) == 1 && groups[i].count(nodekey2) == 1)
+								grp = std::to_string(i);
+						dot_content << "  " << Trait::nodekey_brief(nodekey1) << " -> " << Trait::nodekey_brief(nodekey2)
+										<< " [fontcolor=" << gviz_theme["group" + grp].value("edge_fontcolor", gviz_theme["edge_fontcolor"])
+										<< ", fontname=" << gviz_theme["group" + grp].value("edge_fontname", gviz_theme["edge_fontname"])
+										<< ", color=" << gviz_theme["group" + grp].value("edge_strokecolor", gviz_theme["edge_strokecolor"]);
+						if (label_bond)
+							dot_content << ", taillabel = \"" << Trait::edgekey_brief(ind1) << "\",headlabel =\"" << Trait::edgekey_brief(ind2) << "\"";
+						dot_content << ", len=10]\n";
+					}
 				}
 			}
 			drawn_nodes.insert(nodekey1);

@@ -1,7 +1,7 @@
 #ifndef NET_TRAITS_HPP
 #define NET_TRAITS_HPP
-#include "default_bio.hpp"
-#include "default_io.hpp"
+#include "reference_bio.hpp"
+#include "reference_io.hpp"
 #include <istream>
 #include <ostream>
 #include <set>
@@ -26,19 +26,19 @@ namespace net {
 	struct base_edgekey_traits {
 		static std::string edgekey_brief(const EdgeKey & edgekey) {
 			std::stringstream a;
-			default_write_text(a, edgekey);
+			reference_write_text(a, edgekey);
 			return a.str();
 		}
 		using edgekey_less = std::less<EdgeKey>;
 		using edge2key_less = std::less<std::pair<EdgeKey, EdgeKey>>; // required by TAT
 		static std::ostream & edgekey_write_text(std::ostream & os, const EdgeKey & edgekey) {
-			return default_write_text(os, edgekey);
+			return reference_write_text(os, edgekey);
 		}
 		static std::ostream & edgekey_read_text(std::istream & is, EdgeKey & edgekey) {
-			return default_read_text(is, edgekey);
+			return reference_read_text(is, edgekey);
 		}
 		static std::ostream & edgekey_write_bin(std::ostream & os, const EdgeKey & edgekey) {
-			return default_write_bin(os, edgekey);
+			return reference_write_bin(os, edgekey);
 		}
 		static std::ostream & edgekey_read_bin(std::istream & is, EdgeKey & edgekey) {
 			return edgekey_read_bin(is, edgekey);
@@ -49,18 +49,18 @@ namespace net {
 	struct base_nodekey_traits {
 		static std::string nodekey_brief(const NodeKey & nodekey) {
 			std::stringstream a;
-			default_write_text(a, nodekey);
+			reference_write_text(a, nodekey);
 			return a.str();
 		}
 		using nodekey_less = std::less<NodeKey>;
 		static std::ostream & nodekey_write_text(std::ostream & os, const NodeKey & nodekey) {
-			return default_write_text(os, nodekey);
+			return reference_write_text(os, nodekey);
 		}
 		static std::ostream & nodekey_read_text(std::istream & is, NodeKey & nodekey) {
-			return default_read_text(is, nodekey);
+			return reference_read_text(is, nodekey);
 		}
 		static std::ostream & nodekey_write_bin(std::ostream & os, const NodeKey & nodekey) {
-			return default_write_bin(os, nodekey);
+			return reference_write_bin(os, nodekey);
 		}
 		static std::ostream & nodekey_read_bin(std::istream & is, NodeKey & nodekey) {
 			return edgekey_read_bin(is, nodekey);
@@ -75,13 +75,13 @@ namespace net {
 	template <typename EdgeVal>
 	struct base_edgeval_traits {
 		static std::ostream & edgeval_write_text(std::ostream & os, const EdgeVal & edgeval) {
-			return default_write_text(os, edgeval);
+			return reference_write_text(os, edgeval);
 		}
 		static std::ostream & edgeval_read_text(std::istream & is, EdgeVal & edgeval) {
-			return default_read_text(is, edgeval);
+			return reference_read_text(is, edgeval);
 		}
 		static std::ostream & edgeval_write_bin(std::ostream & os, const EdgeVal & edgeval) {
-			return default_write_bin(os, edgeval);
+			return reference_write_bin(os, edgeval);
 		}
 		static std::ostream & edgeval_read_bin(std::istream & is, EdgeVal & edgeval) {
 			return edgekey_read_bin(is, edgeval);
@@ -91,13 +91,13 @@ namespace net {
 	template <typename NodeVal>
 	struct base_nodeval_traits {
 		static std::ostream & nodeval_write_text(std::ostream & os, const NodeVal & nodeval) {
-			return default_write_text(os, nodeval);
+			return reference_write_text(os, nodeval);
 		}
 		static std::ostream & nodeval_read_text(std::istream & is, NodeVal & nodeval) {
-			return default_read_text(is, nodeval);
+			return reference_read_text(is, nodeval);
 		}
 		static std::ostream & nodeval_write_bin(std::ostream & os, const NodeVal & nodeval) {
-			return default_write_bin(os, nodeval);
+			return reference_write_bin(os, nodeval);
 		}
 		static std::ostream & nodeval_read_bin(std::istream & is, NodeVal & nodeval) {
 			return edgekey_read_bin(is, nodeval);

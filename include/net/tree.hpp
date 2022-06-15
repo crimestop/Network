@@ -5,6 +5,10 @@
 
 namespace net {
 
+	/**
+	 * \brief 树，每个节点包含一个值
+	 * 
+	 */
 	template <typename Data>
 	struct tree {
 		using DataType=Data;
@@ -26,6 +30,10 @@ namespace net {
 #endif
 	};
 
+	/**
+	 * \brief 对树的操作：两个树生成一个新的树
+	 * 
+	 */
 	template <typename contract_type>
 	struct Tree_combine {
 		template <typename Data, typename NoUse>
@@ -34,6 +42,10 @@ namespace net {
 		}
 	};
 
+	/**
+	 * \brief 对树的操作：根节点的值进行改变
+	 * 
+	 */
 	template <typename absorb_type>
 	struct Tree_act {
 		template <typename Data, typename Data2, typename NoUse>
@@ -43,6 +55,10 @@ namespace net {
 		}
 	};
 
+	/**
+	 * \brief 递归地将树的节点转化为dot脚本
+	 * 
+	 */
 	template <typename Data>
 	void gviz_nodes(const tree<Data> & node, std::ostream & dot_content, const std::string & nodename) {
 		std::string nodelable = node.val.show();
@@ -69,6 +85,10 @@ namespace net {
 		}
 	}
 
+	/**
+	 * \brief 将树转化为dot脚本用于作图
+	 * 
+	 */
 	template <typename Data>
 	std::string tree<Data>::gviz() const {
 		std::stringstream dot_content;
@@ -95,6 +115,10 @@ namespace net {
 	std::string render(std::string dot_content, const std::string & engine);
 	void show_fig(const std::string & fig_content, bool tmux, bool st);
 
+	/**
+	 * \brief 将树作图
+	 * 
+	 */
 	template <typename Data>
 	void tree<Data>::draw() {
 		show_fig(render(gviz(), "dot"), true, true);

@@ -11,8 +11,8 @@
 #include "timer.h"
 #include <chrono>
 #include <algorithm>
-#include <net/tensor_contract.hpp>
 #include <net/tensor_network.hpp>
+#include <net/tensor_contract.hpp>
 #include <net/algorithm.hpp>
 
 #include <memory>
@@ -27,25 +27,6 @@ std::string str(int p){
 	return os.str();
 }
 
-void test_all_combination(){
-
-	net::all_combination ac(8);
-	std::set<int> eight;
-	for(int i=0;i<8;++i) eight.insert(i);
-	for(int s=0; s<=8;++s){
-		std::cout<<"break in to "<<s<<" and "<<(8-s)<<'\n';
-		int j=0;
-		for(ac.begin(s);!ac.finish;ac.next()){
-			auto [P,N] = ac.generate(eight);
-			std::cout<<j++<<"\n [ ";
-			for(auto & p: P) std::cout<<p<<' ';
-			std::cout<<"]\n [ ";
-			for(auto & n: N) std::cout<<n<<' ';
-			std::cout<<"]\n";
-		}
-	}
-
-}
 //#define str std::to_string
 int main(){
 
@@ -58,7 +39,7 @@ int main(){
 
 
 	net::tensor::TensorNetworkNoEnv<double> lat2;
-	for(int i=0;i<40;++i){
+	for(int i=0;i<10;++i){
 		lat2.add("ten"+str(i));
 	}
 	generate_random_regular_network(lat2,5,random_engine);
@@ -85,24 +66,26 @@ int main(){
 	// 	}
 	// }
 
-	lat2.init_nodes(std::bind(net::tensor::init_node_rand<net::stdEdgeKey>, _1,dim,-1.,1.,std::ref(random_engine)));
+
+	lat2.gfope(std::bind(net::tensor::init_node_rand<net::tensor::TensorNetworkNoEnv<double>>, _1,dim,-1.,1.,std::ref(random_engine)),
+		net::tensor::init_edge_null<net::tensor::TensorNetworkNoEnv<double>>);
 
 	net::Engine eg;
 
 	std::chrono::steady_clock::time_point start_time;
 	std::chrono::duration<double> cumu_time;
 
-	auto ctree2 = net::get_contract_tree_qbb<net::contract_info2>(lat2,eg);
+	auto ctree2 = net::tensor::get_contract_tree<net::contract_info2>(lat2,eg,"quickbb");
 	std::cout<<"quickbb "<<ctree2->val.hist_max_weight<<','<<ctree2->val.contraction_cost<<'\n';
-	//ctree2->draw();
+	ctree2->draw();
 
-	auto ctree3 = net::get_contract_tree_naive<net::contract_info2>(lat2,eg);
+	auto ctree3 = net::tensor::get_contract_tree<net::contract_info2>(lat2,eg,"naive");
 	std::cout<<"naive "<<ctree3->val.hist_max_weight<<','<<ctree3->val.contraction_cost<<'\n';
-	//ctree3->draw();
+	ctree3->draw();
 
-	auto ctree = net::get_contract_tree<net::contract_info2>(lat2,eg);
-	std::cout<<"kahypar "<<ctree->val.hist_max_weight<<','<<ctree->val.contraction_cost<<' ';
-	//ctree->draw();
+	auto ctree = net::tensor::get_contract_tree<net::contract_info2>(lat2,eg,"partition");
+	std::cout<<"kahypar "<<ctree->val.hist_max_weight<<','<<ctree->val.contraction_cost<<'\n';
+	ctree->draw();
 
 	return 0;
 }
